@@ -13,22 +13,48 @@ export default async function Home({
 
   if (tab === "past") {
     const pastCards = await getPastCards(10);
+
+    // Calculate accuracy from displayed cards
+    const allFights = pastCards.flatMap((card: any) => card.fights);
+    const totalFights = allFights.length;
+    const correctFights = allFights.filter((f: any) => f.correct).length;
+    const accuracy = totalFights > 0
+      ? ((correctFights / totalFights) * 100).toFixed(1)
+      : "0.0";
+
     return (
-      <main className="min-h-screen bg-gray-50">
+      <main className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
         <Navbar activeTab="past" />
         <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
           <p
-            className="text-xs font-medium text-gray-400 uppercase tracking-widest mb-4"
+            className="text-xs font-medium uppercase tracking-widest mb-2"
             style={{ color: "var(--text-secondary)" }}
           >
             Past Cards
           </p>
+
+          {/* Accuracy summary */}
+          <div
+            className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+          >
+            <div>
+              <p className="text-xs font-medium text-white">2026 Accuracy</p>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+                Based on {totalFights} fights shown
+              </p>
+            </div>
+            <span className="text-lg font-semibold" style={{ color: "#4ade80" }}>
+              {accuracy}%
+            </span>
+          </div>
+
           <div className="flex flex-col gap-4">
             {pastCards.map((card: any, i: number) => (
               <PastCard
                 key={i}
                 event={card.event}
-                venue={card.date}
+                date={card.date}
                 fights={card.fights.map((f: any) => ({
                   f1: f.f1,
                   f2: f.f2,
@@ -49,37 +75,44 @@ export default async function Home({
     );
   }
 
-  const [fights, accuracy] = await Promise.all([
-    Promise.all(
-      upcomingFights.map(async (fight) => {
-        const prediction = await getPrediction(fight.f1, fight.f2);
-        if (!prediction) {
-          return {
-            ...fight,
-            pick: "—",
-            conf: 0,
-            f1Prob: 50,
-            f2Prob: 50,
-            error: true,
-            method: { Decision: 0, "KO/TKO": 0, Submission: 0 },
-          };
-        }
-        return { ...fight, ...prediction, error: false };
-      }),
-    ),
-    getAccuracy(),
-  ]);
+  // Group upcoming fights by event preserving order from fights.ts
+  const fightsWithPredictions = await Promise.all(
+    upcomingFights.map(async (fight) => {
+      const prediction = await getPrediction(fight.f1, fight.f2);
+      if (!prediction) {
+        return {
+          ...fight,
+          pick: "—",
+          conf: 0,
+          f1Prob: 50,
+          f2Prob: 50,
+          error: true,
+          method: { Decision: 0, "KO/TKO": 0, Submission: 0 },
+        };
+      }
+      return { ...fight, ...prediction, error: false };
+    })
+  );
+
+  // Group by event name preserving insertion order
+  const eventMap = new Map<string, { event: string; date: string; fights: typeof fightsWithPredictions }>();
+  for (const fight of fightsWithPredictions) {
+    if (!eventMap.has(fight.event)) {
+      eventMap.set(fight.event, { event: fight.event, date: fight.date, fights: [] });
+    }
+    eventMap.get(fight.event)!.fights.push(fight);
+  }
+  const eventGroups = Array.from(eventMap.values());
+
+  const accuracy = await getAccuracy();
 
   return (
     <main className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
       <Navbar activeTab="upcoming" />
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
         <p className="text-xs font-medium text-red-500 uppercase tracking-widest mb-1">
-          Next Event
+          Upcoming Events
         </p>
-        <h1 className="text-xl font-medium text-white mb-1">
-          UFC Fight Night — May 31, 2026
-        </h1>
         <div className="flex items-center gap-3 mb-4">
           <p className="text-sm text-gray-400">AI predictions for all bouts</p>
           {accuracy && (
@@ -88,7 +121,16 @@ export default async function Home({
             </span>
           )}
         </div>
-        <FightCard fights={fights} />
+        <div className="flex flex-col gap-4">
+          {eventGroups.map((group, i) => (
+            <FightCard
+              key={i}
+              event={group.event}
+              date={group.date}
+              fights={group.fights}
+            />
+          ))}
+        </div>
       </div>
     </main>
   );

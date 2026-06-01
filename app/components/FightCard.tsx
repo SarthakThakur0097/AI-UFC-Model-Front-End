@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+"use client";
+
+import React, { useState } from "react";
 
 type Fight = {
   tag: string;
@@ -21,7 +23,13 @@ type Fight = {
   };
 };
 
-export default function FightCard({ fights }: { fights: Fight[] }) {
+type FightCardProps = {
+  event: string;
+  date: string;
+  fights: Fight[];
+};
+
+export default function FightCard({ event, date, fights }: FightCardProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const toggle = (i: number) => {
@@ -42,14 +50,12 @@ export default function FightCard({ fights }: { fights: Fight[] }) {
         className="px-4 py-3 flex items-center justify-between"
       >
         <div>
-          <p className="text-sm font-medium text-white">
-            UFC Fight Night — Newark
-          </p>
+          <p className="text-sm font-medium text-white">{event}</p>
           <p
             className="text-xs mt-0.5"
             style={{ color: "var(--text-secondary)" }}
           >
-            May 31, 2026 · Prudential Center
+            {date}
           </p>
         </div>
         <span
@@ -230,13 +236,6 @@ export default function FightCard({ fights }: { fights: Fight[] }) {
                   </div>
                 ))}
               </div>
-
-              <p
-                className="text-xs mt-3"
-                style={{ color: "var(--text-muted)" }}
-              >
-                Model accuracy: 66.8% on 2023–2024 fights
-              </p>
             </div>
           )}
         </div>

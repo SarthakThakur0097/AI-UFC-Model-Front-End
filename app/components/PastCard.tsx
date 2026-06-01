@@ -22,11 +22,11 @@ type PastFight = {
 
 type PastCardProps = {
   event: string;
-  venue: string;
+  date: string;
   fights: PastFight[];
 };
 
-export default function PastCard({ event, venue, fights }: PastCardProps) {
+export default function PastCard({ event, date, fights }: PastCardProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const correct = fights.filter((f) => f.correct).length;
   const total = fights.length;
@@ -50,7 +50,7 @@ export default function PastCard({ event, venue, fights }: PastCardProps) {
             className="text-xs mt-0.5"
             style={{ color: "var(--text-secondary)" }}
           >
-            {venue}
+            {date}
           </p>
         </div>
         <div className="flex items-center gap-2">

@@ -2,31 +2,31 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000'
 
 export async function getPrediction(f1: string, f2: string) {
   try {
-    const [win, method] = await Promise.all([
-      fetch(`${API_URL}/predict?f1=${encodeURIComponent(f1)}&f2=${encodeURIComponent(f2)}`, 
-        { cache: 'no-store' }).then(r => r.json()),
-      fetch(`${API_URL}/predict/method?f1=${encodeURIComponent(f1)}&f2=${encodeURIComponent(f2)}`,
-        { cache: 'no-store' }).then(r => r.json()),
-    ])
+    const res = await fetch(
+      `${API_URL}/predict/full?f1=${encodeURIComponent(f1)}&f2=${encodeURIComponent(f2)}`,
+      { next: { revalidate: 3600 } }
+    )
+    const data = await res.json()
 
     return {
-      f1: win.f1,
-      f2: win.f2,
-      pick: win.pick,
-      conf: win.confidence,
-      f1Prob: win.f1_prob,
-      f2Prob: win.f2_prob,
+      f1: data.f1,
+      f2: data.f2,
+      pick: data.pick,
+      conf: data.confidence,
+      f1Prob: data.f1_prob,
+      f2Prob: data.f2_prob,
       error: false,
       method: {
-        Decision: method.Decision,
-        'KO/TKO': method['KO/TKO'],
-        Submission: method.Submission,
+        Decision: data.Decision,
+        'KO/TKO': data['KO/TKO'],
+        Submission: data.Submission,
       }
     }
   } catch {
     return null
   }
 }
+
 export async function getAccuracy() {
   try {
     const res = await fetch(`${API_URL}/accuracy`, { cache: 'no-store' })
