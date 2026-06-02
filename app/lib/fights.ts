@@ -104,7 +104,7 @@ export const upcomingFights = [
   // UFC Freedom 250 — Jun 7, 2026
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Main',
     tagColor: 'text-red-500',
     f1: 'Ilia Topuria',
@@ -114,7 +114,7 @@ export const upcomingFights = [
   },
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Co-Main',
     tagColor: 'text-red-500',
     f1: 'Alex Pereira',
@@ -124,7 +124,7 @@ export const upcomingFights = [
   },
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Featured',
     tagColor: 'text-red-500',
     f1: "Sean O'Malley",
@@ -134,7 +134,7 @@ export const upcomingFights = [
   },
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Featured',
     tagColor: 'text-red-500',
     f1: 'Josh Hokit',
@@ -144,7 +144,7 @@ export const upcomingFights = [
   },
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Featured',
     tagColor: 'text-red-500',
     f1: 'Mauricio Ruffy',
@@ -154,7 +154,7 @@ export const upcomingFights = [
   },
   {
     event: 'UFC Freedom 250',
-    date: 'Jun 7, 2026 · Washington D.C.',
+    date: 'Jun 14, 2026 · Washington D.C.',
     tag: 'Featured',
     tagColor: 'text-red-500',
     f1: 'Diego Lopes',
