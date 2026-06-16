@@ -4,7 +4,7 @@ export async function getPrediction(f1: string, f2: string) {
   try {
     const res = await fetch(
       `${API_URL}/predict/full?f1=${encodeURIComponent(f1)}&f2=${encodeURIComponent(f2)}`,
-      { next: { revalidate: 3600 } }
+      { next: { revalidate: 60 } }
     )
     const data = await res.json()
 
