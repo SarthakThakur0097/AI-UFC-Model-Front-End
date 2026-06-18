@@ -3,7 +3,7 @@ import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
 import { upcomingFights } from "./lib/fights";
 import { getPrediction, getPastCards, getAccuracy } from "./lib/api";
-import MatrixRain from "./components/MatrixRain";
+import MatrixRain from "./components/Matrixrain"
 export default async function Home({
   searchParams,
 }: {
