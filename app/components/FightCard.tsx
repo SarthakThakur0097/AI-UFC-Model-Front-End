@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import FightRadar from "./FightRadar";
+import FightRadar from "./Fightradar";
 
 type Fight = {
   tag: string;
