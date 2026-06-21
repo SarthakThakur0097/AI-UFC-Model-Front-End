@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import FightRadar from "./Fightradar";
-
+import FightRadar from "./FightRadar";
+import MethodPerFighter from "./MethodPerFighter";
+import CommonOpponents from "./CommonOpponents";
 type Fight = {
   tag: string;
   tagColor: string;
@@ -230,55 +231,22 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                 </p>
                 <FightRadar f1={fight.f1} f2={fight.f2} />
 
-                {/* Method of Victory */}
+                {/* Method of Victory — per fighter */}
                 <p
                   className="text-xs font-medium uppercase tracking-widest mb-3 mt-5"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Method of Victory
                 </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(fight.method ?? {}).map(([method, pct]) => (
-                    <div
-                      key={method}
-                      style={{
-                        background: "var(--bg-card)",
-                        border: "1px solid var(--border)",
-                      }}
-                      className="rounded-lg p-3"
-                    >
-                      <p
-                        className="text-xs mb-1"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {method}
-                      </p>
-                      <p
-                        className="text-lg font-medium"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        {pct}%
-                      </p>
-                      <div
-                        className="rounded-full mt-2 overflow-hidden"
-                        style={{ height: 4, background: "rgba(0,255,102,0.12)" }}
-                      >
-                        <div
-                          className="h-full rounded-full"
-                          style={{
-                            width: `${pct}%`,
-                            background:
-                              method === "Decision"
-                                ? "var(--matrix-blue)"
-                                : method === "KO/TKO"
-                                ? "var(--matrix-red)"
-                                : "var(--matrix-green)",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <MethodPerFighter f1={fight.f1} f2={fight.f2} />
+                {/* Common Opponents */}
+<p
+  className="text-xs font-medium uppercase tracking-widest mb-3 mt-5"
+  style={{ color: "var(--text-secondary)" }}
+>
+  Common Opponents
+</p>
+<CommonOpponents f1={fight.f1} f2={fight.f2} />
               </div>
             )}
           </div>

@@ -2,11 +2,22 @@
 
 import { useEffect, useState } from "react";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
-// axis order + short display labels (must match backend RADAR_STATS keys)
-const AXES: { key: string; label: string }[] = [
+type Mode = "discipline" | "raw" | "adjusted" | "defense";
+
+// ── axis sets per mode (names MUST match backend stat keys) ──
+const AXES_DISCIPLINE = ["Striking", "Power", "Wrestling", "Control", "BJJ"];
+
+const AXES_DEFENSE = [
+  "Striking Defense",
+  "Takedown Defense",
+  "Durability",
+  "Ground Defense",
+  "Distance Defense",
+];
+
+const AXES_RAW: { key: string; label: string }[] = [
   { key: "slpm", label: "Striking\nVolume" },
   { key: "str_acc", label: "Striking\nAccuracy" },
   { key: "str_def", label: "Striking\nDefense" },
@@ -16,15 +27,38 @@ const AXES: { key: string; label: string }[] = [
   { key: "sub_avg", label: "Sub / 15" },
 ];
 
-type RadarResp = {
-  name: string;
-  stats: Record<string, { raw: number; pct: number; label: string }>;
-};
+const AXES_ADJ: { key: string; label: string }[] = [
+  { key: "slpm", label: "Striking\nVolume" },
+  { key: "str_acc", label: "Striking\nAccuracy" },
+  { key: "td_avg", label: "Takedowns" },
+  { key: "td_acc", label: "TD\nAccuracy" },
+  { key: "sub_avg", label: "Submission" },
+  { key: "ctrl_time_per_min", label: "Control" },
+  { key: "kd_per_min", label: "Knockdown\nPower" },
+  { key: "ground_allowed", label: "Ground\nDefense" },
+  { key: "distance_allowed", label: "Distance\nDefense" },
+];
 
-async function fetchRadar(name: string): Promise<RadarResp | null> {
+// labels for radar display — wrap multi-word axis names onto two lines
+function wrapLabel(s: string): string {
+  if (s.includes("\n")) return s;
+  const parts = s.split(" ");
+  if (parts.length === 2) return parts.join("\n");
+  return s;
+}
+
+async function fetchRadar(name: string, mode: Mode): Promise<any | null> {
+  const path =
+    mode === "discipline"
+      ? "radar_discipline"
+      : mode === "defense"
+        ? "radar_defense"
+        : mode === "adjusted"
+          ? "radar_adj"
+          : "radar";
   try {
     const res = await fetch(
-      `${API_URL}/fighter/${encodeURIComponent(name)}/radar`
+      `${API_URL}/fighter/${encodeURIComponent(name)}/${path}`,
     );
     if (!res.ok) return null;
     return res.json();
@@ -33,8 +67,7 @@ async function fetchRadar(name: string): Promise<RadarResp | null> {
   }
 }
 
-function polygon(vals: number[], R: number, cx: number, cy: number) {
-  const n = AXES.length;
+function polygon(vals: number[], R: number, cx: number, cy: number, n: number) {
   let p = "";
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + (i * 2 * Math.PI) / n;
@@ -46,61 +79,152 @@ function polygon(vals: number[], R: number, cx: number, cy: number) {
   return p + "Z";
 }
 
-export default function FightRadar({
-  f1,
-  f2,
-}: {
-  f1: string;
-  f2: string;
-}) {
-  const [a, setA] = useState<RadarResp | null>(null);
-  const [b, setB] = useState<RadarResp | null>(null);
+function valsFor(mode: Mode, resp: any): number[] {
+  if (!resp) return [];
+  if (mode === "discipline")
+    return AXES_DISCIPLINE.map((ax) => resp.stats[ax] ?? 0);
+  if (mode === "defense") return AXES_DEFENSE.map((ax) => resp.stats[ax] ?? 0);
+  const axes = mode === "adjusted" ? AXES_ADJ : AXES_RAW;
+  return axes.map((ax) => resp.stats[ax.key]?.pct ?? 0);
+}
+
+function labelsFor(mode: Mode): string[] {
+  if (mode === "discipline") return AXES_DISCIPLINE.map(wrapLabel);
+  if (mode === "defense") return AXES_DEFENSE.map(wrapLabel);
+  return (mode === "adjusted" ? AXES_ADJ : AXES_RAW).map((a) => a.label);
+}
+
+export default function FightRadar({ f1, f2 }: { f1: string; f2: string }) {
+  const [mode, setMode] = useState<Mode>("discipline");
+  const [a, setA] = useState<any | null>(null);
+  const [b, setB] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    Promise.all([fetchRadar(f1), fetchRadar(f2)]).then(([ra, rb]) => {
-      if (!alive) return;
-      if (!ra || !rb) {
-        setFailed(true);
-      } else {
-        setA(ra);
-        setB(rb);
-      }
-      setLoading(false);
-    });
+    setFailed(false);
+    Promise.all([fetchRadar(f1, mode), fetchRadar(f2, mode)]).then(
+      ([ra, rb]) => {
+        if (!alive) return;
+        if (!ra || !rb) setFailed(true);
+        else {
+          setA(ra);
+          setB(rb);
+        }
+        setLoading(false);
+      },
+    );
     return () => {
       alive = false;
     };
-  }, [f1, f2]);
+  }, [f1, f2, mode]);
+
+  const MODES: { label: string; val: Mode }[] = [
+    { label: "Discipline", val: "discipline" },
+    { label: "Raw", val: "raw" },
+    { label: "Adjusted", val: "adjusted" },
+    { label: "Defense", val: "defense" },
+  ];
+
+  const toggle = (
+    <div
+      style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}
+    >
+      {MODES.map((opt, i) => (
+        <button
+          key={opt.val}
+          onClick={() => setMode(opt.val)}
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.5px",
+            padding: "5px 10px",
+            cursor: "pointer",
+            fontFamily: "'Courier New', monospace",
+            textTransform: "uppercase",
+            border: "1px solid var(--border)",
+            borderLeft: i === 0 ? "1px solid var(--border)" : "none",
+            borderRadius:
+              i === 0
+                ? "5px 0 0 5px"
+                : i === MODES.length - 1
+                  ? "0 5px 5px 0"
+                  : "0",
+            background:
+              mode === opt.val ? "rgba(0,255,102,0.15)" : "transparent",
+            color:
+              mode === opt.val
+                ? "var(--matrix-green)"
+                : "var(--text-secondary)",
+          }}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
 
   if (loading)
     return (
-      <p
-        style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "20px 0" }}
-      >
-        Loading radar…
-      </p>
-    );
-  if (failed || !a || !b)
-    return (
-      <p
-        style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "20px 0" }}
-      >
-        Radar unavailable for this matchup
-      </p>
+      <div>
+        {toggle}
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 12,
+            color: "#5f8f73",
+            padding: "20px 0",
+          }}
+        >
+          Loading radar…
+        </p>
+      </div>
     );
 
-  const valsA = AXES.map((ax) => a.stats[ax.key]?.pct ?? 0);
-  const valsB = AXES.map((ax) => b.stats[ax.key]?.pct ?? 0);
+  if (failed || !a || !b)
+    return (
+      <div>
+        {toggle}
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 12,
+            color: "#5f8f73",
+            padding: "20px 0",
+          }}
+        >
+          Radar unavailable for this matchup
+        </p>
+      </div>
+    );
+
+  if (mode === "adjusted" && (a.limited || b.limited))
+    return (
+      <div>
+        {toggle}
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 12,
+            color: "#5f8f73",
+            padding: "20px 0",
+          }}
+        >
+          Limited adjusted data for this matchup
+        </p>
+      </div>
+    );
+
+  const labels = labelsFor(mode);
+  const n = labels.length;
+  const valsA = valsFor(mode, a);
+  const valsB = valsFor(mode, b);
 
   const size = 300;
   const cx = size / 2;
   const cy = size / 2 + 6;
-  const R = 95;
-  const n = AXES.length;
+  const R = 92;
 
   const ringPath = (frac: number) => {
     let p = "";
@@ -114,7 +238,7 @@ export default function FightRadar({
   };
 
   const spokes: React.ReactElement[] = [];
-  const labels: React.ReactElement[] = [];
+  const labelEls: React.ReactElement[] = [];
   for (let i = 0; i < n; i++) {
     const ang = -Math.PI / 2 + (i * 2 * Math.PI) / n;
     const x = cx + Math.cos(ang) * R;
@@ -127,19 +251,19 @@ export default function FightRadar({
         x2={x.toFixed(1)}
         y2={y.toFixed(1)}
         stroke="rgba(0,255,102,0.10)"
-      />
+      />,
     );
-    const lx = cx + Math.cos(ang) * (R + 20);
-    const ly = cy + Math.sin(ang) * (R + 20);
-    const lines = AXES[i].label.split("\n");
+    const lx = cx + Math.cos(ang) * (R + 22);
+    const ly = cy + Math.sin(ang) * (R + 22);
+    const lines = labels[i].split("\n");
     const anchor =
       Math.abs(Math.cos(ang)) < 0.3
         ? "middle"
         : Math.cos(ang) > 0
-        ? "start"
-        : "end";
+          ? "start"
+          : "end";
     lines.forEach((ln, j) => {
-      labels.push(
+      labelEls.push(
         <text
           key={`l${i}-${j}`}
           x={lx.toFixed(1)}
@@ -150,13 +274,17 @@ export default function FightRadar({
           fontFamily="'Courier New', monospace"
         >
           {ln}
-        </text>
+        </text>,
       );
     });
   }
 
+  // widened canvas so left/right labels never clip
+  const padX = 70;
+
   return (
     <div>
+      {toggle}
       <div
         style={{
           display: "flex",
@@ -192,10 +320,10 @@ export default function FightRadar({
         </span>
       </div>
       <svg
-        width={size}
+        width={size + padX * 2}
         height={size + 10}
-        viewBox={`0 0 ${size} ${size + 10}`}
-        style={{ display: "block", margin: "0 auto" }}
+        viewBox={`${-padX} 0 ${size + padX * 2} ${size + 10}`}
+        style={{ display: "block", margin: "0 auto", maxWidth: "100%" }}
       >
         {[0.25, 0.5, 0.75, 1].map((f) => (
           <path
@@ -207,19 +335,55 @@ export default function FightRadar({
         ))}
         {spokes}
         <path
-          d={polygon(valsB, R, cx, cy)}
+          d={polygon(valsB, R, cx, cy, n)}
           fill="#39c0ff22"
           stroke="#39c0ff"
           strokeWidth="2"
         />
         <path
-          d={polygon(valsA, R, cx, cy)}
+          d={polygon(valsA, R, cx, cy, n)}
           fill="#ff3b5c22"
           stroke="#ff3b5c"
           strokeWidth="2"
         />
-        {labels}
+        {labelEls}
       </svg>
+      {mode === "discipline" && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 10,
+            color: "#3a5c47",
+            marginTop: 6,
+          }}
+        >
+          MMA skill profile — percentile vs all fighters
+        </p>
+      )}
+      {mode === "defense" && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 10,
+            color: "#3a5c47",
+            marginTop: 6,
+          }}
+        >
+          Defensive profile — higher = harder to hit / finish
+        </p>
+      )}
+      {mode === "adjusted" && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 10,
+            color: "#3a5c47",
+            marginTop: 6,
+          }}
+        >
+          Opponent-adjusted percentile vs division
+        </p>
+      )}
     </div>
   );
 }
