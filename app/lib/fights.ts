@@ -1,29 +1,64 @@
-export const upcomingFights = [
-  // UFC Fight Night: Kape vs. Horiguchi — Jun 20, 2026
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Main', tagColor: 'text-red-500', f1: 'Manel Kape', f1Record: '', f2: 'Kyoji Horiguchi', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Co-Main', tagColor: 'text-red-500', f1: 'Ion Cutelaba', f1Record: '', f2: 'Navajo Stirling', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Featured', tagColor: 'text-red-500', f1: 'Vinicius Oliveira', f1Record: '', f2: 'Andre Fili', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Featured', tagColor: 'text-red-500', f1: 'Hyder Amil', f1Record: '', f2: 'Christian Rodriguez', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Featured', tagColor: 'text-red-500', f1: 'Andre Lima', f1Record: '', f2: 'Kevin Borjas', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Prelim', tagColor: 'text-red-500', f1: 'Melsik Baghdasaryan', f1Record: '', f2: 'Murtazali Magomedov', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Prelim', tagColor: 'text-red-500', f1: 'Bia Mesquita', f1Record: '', f2: 'Melissa Mullins', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Prelim', tagColor: 'text-red-500', f1: 'Allan Nascimento', f1Record: '', f2: 'Mitch Raposo', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Prelim', tagColor: 'text-red-500', f1: 'Gaston Bolanos', f1Record: '', f2: 'Michael Aswell Jr.', f2Record: '' },
-  { event: 'UFC Fight Night: Kape vs. Horiguchi', date: 'Jun 20, 2026 · Meta APEX, Las Vegas', tag: 'Prelim', tagColor: 'text-red-500', f1: 'Karol Rosa', f1Record: '', f2: 'Luana Santos', f2Record: '' },
+// fights.ts
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
-  // UFC Fight Night: Fiziev vs. Torres — Jun 27, 2026
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Main', tagColor: 'text-blue-400', f1: 'Rafael Fiziev', f1Record: '', f2: 'Manuel Torres', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Co-Main', tagColor: 'text-blue-400', f1: 'Sharabutdin Magomedov', f1Record: '', f2: 'Michel Pereira', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Featured', tagColor: 'text-blue-400', f1: 'Marvin Vettori', f1Record: '', f2: 'Ismail Naurdiev', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Featured', tagColor: 'text-blue-400', f1: 'Brunno Ferreira', f1Record: '', f2: 'Ikram Aliskerov', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Featured', tagColor: 'text-blue-400', f1: 'Asu Almabayev', f1Record: '', f2: 'Charles Johnson', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Featured', tagColor: 'text-blue-400', f1: 'Michal Oleksiejczuk', f1Record: '', f2: 'Abusupiyan Magomedov', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Tahir Abdullayev', f1Record: '', f2: 'Jefferson Nascimento', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Bekzat Almakhan', f1Record: '', f2: 'Jean Matsumoto', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Daniil Donchenko', f1Record: '', f2: 'Theodor Berggren', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Kaan Ofli', f1Record: '', f2: 'Javier Reyes', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Nursulton Ruziboev', f1Record: '', f2: 'Andrey Pulyaev', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Abdul-Rakhman Yakhyaev', f1Record: '', f2: 'Julius Walker', f2Record: '' },
-  { event: 'UFC Fight Night: Fiziev vs. Torres', date: 'Jun 27, 2026 · Baku, Azerbaijan', tag: 'Prelim', tagColor: 'text-gray-400', f1: 'Farman Hasanov', f1Record: '', f2: 'Eric Nolan', f2Record: '' },
+export type UpcomingFight = {
+  event: string;
+  date: string;
+  tag: string;
+  tagColor: string;
+  f1: string;
+  f1Record: string;
+  f2: string;
+  f2Record: string;
+};
 
-]
+// derive Main / Co-Main / Featured / Prelim from card position
+function positionToTag(pos: number, total: number): { tag: string; tagColor: string } {
+  if (pos === 0) return { tag: "Main", tagColor: "text-blue-400" };
+  if (pos === 1) return { tag: "Co-Main", tagColor: "text-blue-400" };
+  if (pos <= 4) return { tag: "Featured", tagColor: "text-blue-400" };
+  return { tag: "Prelim", tagColor: "text-gray-400" };
+}
+
+// "2026-06-27" + location -> "Jun 27, 2026 · Baku, Azerbaijan"
+function formatDate(iso: string, location: string): string {
+  const d = new Date(iso + "T00:00:00");
+  const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" };
+  const dateStr = isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-US", opts);
+  return location ? `${dateStr} · ${location}` : dateStr;
+}
+
+export async function fetchUpcomingFights(): Promise<UpcomingFight[]> {
+  try {
+    const res = await fetch(`${API_URL}/upcoming`);
+    if (!res.ok) return [];
+    const events: {
+      event: string;
+      date: string;
+      location: string;
+      fights: { f1: string; f2: string; weight_class: string; position: number }[];
+    }[] = await res.json();
+
+    // flatten grouped events -> flat fight list (matching old shape)
+    const flat: UpcomingFight[] = [];
+    for (const ev of events) {
+      const total = ev.fights.length;
+      for (const f of ev.fights) {
+        const { tag, tagColor } = positionToTag(f.position, total);
+        flat.push({
+          event: ev.event,
+          date: formatDate(ev.date, ev.location),
+          tag,
+          tagColor,
+          f1: f.f1,
+          f1Record: "",
+          f2: f.f2,
+          f2Record: "",
+        });
+      }
+    }
+    return flat;
+  } catch {
+    return [];
+  }
+}

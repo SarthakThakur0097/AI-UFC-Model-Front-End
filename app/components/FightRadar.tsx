@@ -122,11 +122,11 @@ export default function FightRadar({ f1, f2 }: { f1: string; f2: string }) {
   }, [f1, f2, mode]);
 
   const MODES: { label: string; val: Mode }[] = [
-    { label: "Discipline", val: "discipline" },
-    { label: "Raw", val: "raw" },
-    { label: "Adjusted", val: "adjusted" },
-    { label: "Defense", val: "defense" },
-  ];
+  { label: "Discipline", val: "discipline" },
+  { label: "Adjusted", val: "adjusted" },
+  { label: "Defense", val: "defense" },
+  { label: "Raw", val: "raw" },
+];
 
   const toggle = (
     <div

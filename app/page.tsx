@@ -1,9 +1,9 @@
 import Navbar from "./components/Navbar";
 import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
-import { upcomingFights } from "./lib/fights";
-import { getPrediction, getPastCards, getAccuracy } from "./lib/api";
-import MatrixRain from "./components/Matrixrain"
+import { getPastCards, getAccuracy, getUpcomingFights } from "./lib/api";
+import MatrixRain from "./components/MatrixRain";
+
 export default async function Home({
   searchParams,
 }: {
@@ -89,24 +89,29 @@ export default async function Home({
     );
   }
 
-  // Group upcoming fights by event preserving order from fights.ts
-  const fightsWithPredictions = await Promise.all(
-    upcomingFights.map(async (fight) => {
-      const prediction = await getPrediction(fight.f1, fight.f2);
-      if (!prediction) {
-        return {
-          ...fight,
-          pick: "—",
-          conf: 0,
-          f1Prob: 50,
-          f2Prob: 50,
-          error: true,
-          method: { Decision: 0, "KO/TKO": 0, Submission: 0 },
-        };
-      }
-      return { ...fight, ...prediction, error: false };
-    }),
-  );
+  // Fetch upcoming fights — predictions are precomputed server-side and arrive
+  // attached, so there is NO per-fight model call on a user visit.
+  const upcomingFights = await getUpcomingFights();
+
+  const fightsWithPredictions = upcomingFights.map((fight) => {
+    const hasPred = !fight.error && fight.pick !== undefined;
+    return {
+      tag: fight.tag,
+      tagColor: fight.tagColor,
+      f1: fight.f1,
+      f1Record: fight.f1Record,
+      f2: fight.f2,
+      f2Record: fight.f2Record,
+      event: fight.event,
+      date: fight.date,
+      pick: hasPred ? (fight.pick as string) : "—",
+      conf: hasPred ? (fight.conf as number) : 0,
+      f1Prob: hasPred ? (fight.f1Prob as number) : 50,
+      f2Prob: hasPred ? (fight.f2Prob as number) : 50,
+      error: !hasPred,
+      method: fight.method ?? { Decision: 0, "KO/TKO": 0, Submission: 0 },
+    };
+  });
 
   // Group by event name preserving insertion order
   const eventMap = new Map<
@@ -128,8 +133,8 @@ export default async function Home({
   const accuracy = await getAccuracy();
 
   return (
-  <main className="min-h-screen" style={{ position: "relative", zIndex: 1 }}>
-    <MatrixRain />
+    <main className="min-h-screen" style={{ position: "relative", zIndex: 1 }}>
+      <MatrixRain />
       <Navbar activeTab="upcoming" />
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
         <p className="text-xs font-medium text-red-500 uppercase tracking-widest mb-1">

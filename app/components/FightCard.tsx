@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import FightRadar from "./FightRadar";
 import MethodPerFighter from "./MethodPerFighter";
 import CommonOpponents from "./CommonOpponents";
+import FighterRating from "./FighterRating";
+
 type Fight = {
   tag: string;
   tagColor: string;
@@ -189,6 +191,16 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                 }}
                 className="px-4 pb-6 pt-4"
               >
+                {/* Fighter Rating */}
+<p
+  className="text-xs font-medium uppercase tracking-widest mb-3"
+  style={{ color: "var(--text-secondary)" }}
+>
+  Fighter Rating
+</p>
+              <FighterRating f1={fight.f1} f2={fight.f2} />
+
+              <div style={{ height: 20 }} />
                 {/* Win Probability */}
                 <p
                   className="text-xs font-medium uppercase tracking-widest mb-3"
