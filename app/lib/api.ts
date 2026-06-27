@@ -67,7 +67,18 @@ export type UpcomingFight = {
   f1Prob?: number
   f2Prob?: number
   method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
+  methodPerFighter?: MethodPerFighterData | null
+  commonOpponents?: { common: any[]; count: number } | null
   error?: boolean
+}
+
+export type MethodPerFighterData = {
+  f1_name: string
+  f2_name: string
+  f1: { KO: number; Sub: number; Dec: number }
+  f2: { KO: number; Sub: number; Dec: number }
+  f1_win: number
+  f2_win: number
 }
 
 // derive Main / Co-Main / Featured / Prelim from card position
@@ -98,6 +109,8 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
         f1: string; f2: string; weight_class: string; position: number
         pick?: string; confidence?: number; f1_prob?: number; f2_prob?: number
         method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
+        method_per_fighter?: MethodPerFighterData | null
+        common_opponents?: { common: any[]; count: number } | null
         error?: boolean
       }[]
     }[] = await res.json()
@@ -121,6 +134,8 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
           f1Prob: f.f1_prob,
           f2Prob: f.f2_prob,
           method: f.method,
+          methodPerFighter: f.method_per_fighter ?? null,
+          commonOpponents: f.common_opponents ?? null,
           error: f.error ?? (f.pick === undefined),
         })
       }

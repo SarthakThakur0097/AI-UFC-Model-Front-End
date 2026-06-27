@@ -60,7 +60,7 @@ export default function MatrixRain() {
         position: "fixed",
         inset: 0,
         zIndex: 0,
-        opacity: 0.3,
+        opacity: 0.08,
         pointerEvents: "none",
       }}
       aria-hidden="true"

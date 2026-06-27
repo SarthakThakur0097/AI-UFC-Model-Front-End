@@ -3,44 +3,69 @@ export default function Navbar({
 }: {
   activeTab?: string;
 }) {
+  const tabBase =
+    "px-4 py-1.5 text-sm rounded-md font-medium transition-colors";
+
   return (
     <nav
       style={{
-        background: "var(--bg-card)",
-        borderBottom: "1px solid var(--border)",
+        background: "rgba(20,20,20,0.8)",
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        borderBottom: "1px solid #222",
       }}
-      className="px-6 h-14 flex items-center justify-between"
+      className="px-6 h-[60px] flex items-center justify-between sticky top-0 z-50"
     >
+      {/* Logo */}
       <div className="flex items-center gap-2">
-        <div className="w-2 h-2 rounded-full bg-red-500"></div>
-        <span className="text-sm font-medium text-white">FightAI</span>
+        <div
+          className="w-[7px] h-[7px] rounded-full bg-red-500"
+          style={{ boxShadow: "0 0 8px rgba(239,68,68,0.5)" }}
+        />
+        <span className="text-[15px] font-semibold text-white tracking-tight">
+          Fight<span className="text-red-500">AI</span>
+        </span>
       </div>
-      <div className="flex gap-1">
+
+      {/* Segmented tabs */}
+      <div
+        className="flex gap-0.5 p-[3px] rounded-[10px]"
+        style={{ background: "#141414", border: "1px solid #242424" }}
+      >
         <a
           href="/?tab=upcoming"
-          className={`px-3 py-1.5 text-sm rounded-md font-medium ${activeTab === "upcoming" ? "text-white" : "text-gray-500"}`}
+          className={tabBase}
           style={
             activeTab === "upcoming"
-              ? { background: "rgba(255,255,255,0.1)" }
-              : {}
+              ? { background: "#262626", color: "#fff" }
+              : { color: "#777" }
           }
         >
           Upcoming
         </a>
         <a
           href="/?tab=past"
-          className={`px-3 py-1.5 text-sm rounded-md font-medium ${activeTab === "past" ? "text-white" : "text-gray-500"}`}
+          className={tabBase}
           style={
-            activeTab === "past" ? { background: "rgba(255,255,255,0.1)" } : {}
+            activeTab === "past"
+              ? { background: "#262626", color: "#fff" }
+              : { color: "#777" }
           }
         >
           Past cards
         </a>
       </div>
+
+      {/* AI picks status */}
       <div
-        className="text-xs px-2 py-1 rounded-md text-gray-500 border"
-        style={{ borderColor: "var(--border)" }}
+        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg"
+        style={{
+          color: "#aaa",
+          border: "1px solid #2a2a2a",
+          background: "#161616",
+        }}
       >
+        <span className="inline-block w-[5px] h-[5px] rounded-full bg-green-400" />
         AI picks
       </div>
     </nav>

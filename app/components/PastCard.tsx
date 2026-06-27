@@ -1,6 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import MethodPerFighter from "./MethodPerFighter";
+import FightRadar from "./FightRadar";
+
+type MethodPerFighterData = {
+  f1_name: string;
+  f2_name: string;
+  f1: { KO: number; Sub: number; Dec: number };
+  f2: { KO: number; Sub: number; Dec: number };
+  f1_win: number;
+  f2_win: number;
+};
 
 type PastFight = {
   f1: string;
@@ -18,6 +29,7 @@ type PastFight = {
     Submission: number;
     pick: string;
   };
+  method_per_fighter?: MethodPerFighterData | null;
 };
 
 type PastCardProps = {
@@ -176,44 +188,38 @@ export default function PastCard({ event, date, fights }: PastCardProps) {
                 </p>
               </div>
 
-              {/* Method Prediction */}
+              {/* Performance Radar — current profile (not fight-time) */}
+              <p
+                className="text-xs font-medium uppercase tracking-widest mb-1 mt-2 text-center"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                Performance Radar — current profile
+              </p>
+              <FightRadar f1={fight.f1} f2={fight.f2} />
+
+              <div style={{ height: 20 }} />
+
+              {/* Method Prediction — per-fighter, from stored data (no live fetch) */}
               <p
                 className="text-xs font-medium uppercase tracking-widest mb-3"
                 style={{ color: "var(--text-secondary)" }}
               >
                 Method Prediction
               </p>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.entries(fight.method_pred)
-                  .filter(([key]) => key !== "pick")
-                  .map(([method, pct]) => (
-                    <div
-                      key={method}
-                      style={{
-                        background: "var(--bg-card)",
-                        border: "1px solid var(--border)",
-                      }}
-                      className="rounded-lg p-3"
-                    >
-                      <p
-                        className="text-xs mb-1"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        {method}
-                      </p>
-                      <p className="text-lg font-medium text-white">{pct}%</p>
-                      <div
-                        className="h-1 rounded-full mt-2 overflow-hidden"
-                        style={{ background: "var(--border)" }}
-                      >
-                        <div
-                          className={`h-full rounded-full ${method === "Decision" ? "bg-blue-400" : method === "KO/TKO" ? "bg-red-500" : "bg-green-500"}`}
-                          style={{ width: `${pct}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
+              {fight.method_per_fighter ? (
+                <MethodPerFighter
+                  f1={fight.f1}
+                  f2={fight.f2}
+                  data={fight.method_per_fighter}
+                />
+              ) : (
+                <p
+                  className="text-xs"
+                  style={{ color: "var(--text-muted)", padding: "8px 0" }}
+                >
+                  Method breakdown unavailable
+                </p>
+              )}
             </div>
           )}
         </div>

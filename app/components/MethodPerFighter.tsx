@@ -14,12 +14,17 @@ type MethodResp = {
   f2_win: number;
 };
 
-async function fetchMethod(f1: string, f2: string): Promise<MethodResp | null> {
+async function fetchMethod(
+  f1: string,
+  f2: string,
+  asOfDate?: string
+): Promise<MethodResp | null> {
   try {
+    const dateParam = asOfDate ? `&as_of_date=${encodeURIComponent(asOfDate)}` : "";
     const res = await fetch(
       `${API_URL}/predict/method_per_fighter?f1=${encodeURIComponent(
         f1
-      )}&f2=${encodeURIComponent(f2)}`
+      )}&f2=${encodeURIComponent(f2)}${dateParam}`
     );
     if (!res.ok) return null;
     return res.json();
@@ -107,21 +112,44 @@ function FighterColumn({
   );
 }
 
+// Shared presentational view (used by both fetched and prop-fed data)
+function MethodView({ data }: { data: MethodResp }) {
+  return (
+    <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+      <FighterColumn name={data.f1_name} data={data.f1} other={data.f2} />
+      <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
+      <FighterColumn name={data.f2_name} data={data.f2} other={data.f1} />
+    </div>
+  );
+}
+
 export default function MethodPerFighter({
   f1,
   f2,
+  asOfDate,
+  data: providedData,
 }: {
   f1: string;
   f2: string;
+  asOfDate?: string;
+  // If provided (e.g. past cards reading from storage), render directly with
+  // NO network call. If omitted (upcoming cards), fetch live.
+  data?: MethodResp | null;
 }) {
-  const [data, setData] = useState<MethodResp | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<MethodResp | null>(providedData ?? null);
+  const [loading, setLoading] = useState(!providedData);
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    // If data was provided as a prop, never fetch.
+    if (providedData) {
+      setData(providedData);
+      setLoading(false);
+      return;
+    }
     let alive = true;
     setLoading(true);
-    fetchMethod(f1, f2).then((r) => {
+    fetchMethod(f1, f2, asOfDate).then((r) => {
       if (!alive) return;
       if (!r) setFailed(true);
       else setData(r);
@@ -130,7 +158,7 @@ export default function MethodPerFighter({
     return () => {
       alive = false;
     };
-  }, [f1, f2]);
+  }, [f1, f2, asOfDate, providedData]);
 
   if (loading)
     return (
@@ -146,11 +174,5 @@ export default function MethodPerFighter({
       </p>
     );
 
-  return (
-    <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-      <FighterColumn name={data.f1_name} data={data.f1} other={data.f2} />
-      <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
-      <FighterColumn name={data.f2_name} data={data.f2} other={data.f1} />
-    </div>
-  );
+  return <MethodView data={data} />;
 }

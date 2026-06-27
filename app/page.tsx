@@ -2,7 +2,7 @@ import Navbar from "./components/Navbar";
 import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
 import { getPastCards, getAccuracy, getUpcomingFights } from "./lib/api";
-import MatrixRain from "./components/MatrixRain";
+import MatrixRain from "./components/Matrixrain";
 
 export default async function Home({
   searchParams,
@@ -80,6 +80,7 @@ export default async function Home({
                   f2_prob: f.f2_prob,
                   actual_winner: f.actual_winner,
                   method_pred: f.method_pred,
+                  method_per_fighter: f.method_per_fighter,
                 }))}
               />
             ))}
@@ -110,6 +111,8 @@ export default async function Home({
       f2Prob: hasPred ? (fight.f2Prob as number) : 50,
       error: !hasPred,
       method: fight.method ?? { Decision: 0, "KO/TKO": 0, Submission: 0 },
+      methodPerFighter: fight.methodPerFighter ?? null,
+      commonOpponents: fight.commonOpponents ?? null,
     };
   });
 
@@ -137,16 +140,35 @@ export default async function Home({
       <MatrixRain />
       <Navbar activeTab="upcoming" />
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
-        <p className="text-xs font-medium text-red-500 uppercase tracking-widest mb-1">
-          Upcoming Events
-        </p>
-        <div className="flex items-center gap-3 mb-4">
-          <p className="text-sm text-gray-400">AI predictions for all bouts</p>
-          {accuracy && (
-            <span className="text-xs px-2 py-1 rounded-md bg-green-50 text-green-700 font-medium">
-              {accuracy.accuracy}% accuracy on last {accuracy.total} fights
-            </span>
-          )}
+        <div className="mb-6">
+          <div className="flex items-baseline justify-between mb-1">
+            <h1 className="text-xl font-semibold tracking-tight text-white">
+              Upcoming Events
+            </h1>
+            {accuracy && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "rgba(74, 222, 128, 0.08)",
+                  border: "1px solid rgba(74, 222, 128, 0.2)",
+                }}
+              >
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full"
+                  style={{ background: "#4ade80" }}
+                />
+                <span className="text-xs font-medium" style={{ color: "#4ade80" }}>
+                  {accuracy.accuracy}% accuracy
+                </span>
+                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  · last {accuracy.total}
+                </span>
+              </div>
+            )}
+          </div>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+            AI predictions for all bouts
+          </p>
         </div>
         <div className="flex flex-col gap-4">
           {eventGroups.map((group, i) => (

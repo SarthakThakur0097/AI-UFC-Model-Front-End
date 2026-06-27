@@ -23,6 +23,15 @@ type Fight = {
     "KO/TKO": number;
     Submission: number;
   };
+  commonOpponents?: { common: any[]; count: number } | null;
+  methodPerFighter?: {
+    f1_name: string;
+    f2_name: string;
+    f1: { KO: number; Sub: number; Dec: number };
+    f2: { KO: number; Sub: number; Dec: number };
+    f1_win: number;
+    f2_win: number;
+  } | null;
 };
 
 type FightCardProps = {
@@ -87,9 +96,7 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
               onClick={() => toggle(i)}
               style={{
                 borderBottom:
-                  i < fights.length - 1
-                    ? "1px solid var(--border)"
-                    : "none",
+                  i < fights.length - 1 ? "1px solid var(--border)" : "none",
               }}
               className="px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-[rgba(0,255,102,0.04)] transition-colors"
             >
@@ -192,15 +199,15 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                 className="px-4 pb-6 pt-4"
               >
                 {/* Fighter Rating */}
-<p
-  className="text-xs font-medium uppercase tracking-widest mb-3"
-  style={{ color: "var(--text-secondary)" }}
->
-  Fighter Rating
-</p>
-              <FighterRating f1={fight.f1} f2={fight.f2} />
+                <p
+                  className="text-xs font-medium uppercase tracking-widest mb-3"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Fighter Rating
+                </p>
+                <FighterRating f1={fight.f1} f2={fight.f2} />
 
-              <div style={{ height: 20 }} />
+                <div style={{ height: 20 }} />
                 {/* Win Probability */}
                 <p
                   className="text-xs font-medium uppercase tracking-widest mb-3"
@@ -250,15 +257,23 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                 >
                   Method of Victory
                 </p>
-                <MethodPerFighter f1={fight.f1} f2={fight.f2} />
+                <MethodPerFighter
+                  f1={fight.f1}
+                  f2={fight.f2}
+                  data={fight.methodPerFighter ?? undefined}
+                />
                 {/* Common Opponents */}
-<p
-  className="text-xs font-medium uppercase tracking-widest mb-3 mt-5"
-  style={{ color: "var(--text-secondary)" }}
->
-  Common Opponents
-</p>
-<CommonOpponents f1={fight.f1} f2={fight.f2} />
+                <p
+                  className="text-xs font-medium uppercase tracking-widest mb-3 mt-5"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Common Opponents
+                </p>
+                <CommonOpponents
+                  f1={fight.f1}
+                  f2={fight.f2}
+                  data={fight.commonOpponents ?? undefined}
+                />
               </div>
             )}
           </div>
