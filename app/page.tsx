@@ -1,8 +1,9 @@
 import Navbar from "./components/Navbar";
 import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
+import CalibrationPage from "./components/CalibrationPage";
 import { getPastCards, getAccuracy, getUpcomingFights } from "./lib/api";
-import MatrixRain from "./components/Matrixrain";
+import MatrixRain from "./components/MatrixRain";
 
 export default async function Home({
   searchParams,
@@ -11,8 +12,29 @@ export default async function Home({
 }) {
   const tab = searchParams.tab || "upcoming";
 
+  if (tab === "calibration") {
+    return (
+      <main
+        className="min-h-screen"
+        style={{ background: "var(--bg-primary)" }}
+      >
+        <MatrixRain />
+        <Navbar activeTab="calibration" />
+        <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
+          <p
+            className="text-xs font-medium uppercase tracking-widest mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Model Calibration
+          </p>
+          <CalibrationPage />
+        </div>
+      </main>
+    );
+  }
+
   if (tab === "past") {
-    const pastCards = await getPastCards(10);
+    const pastCards = await getPastCards(20);
 
     // Calculate accuracy from displayed cards
     const allFights = pastCards.flatMap((card: any) => card.fights);
@@ -157,10 +179,16 @@ export default async function Home({
                   className="inline-block w-1.5 h-1.5 rounded-full"
                   style={{ background: "#4ade80" }}
                 />
-                <span className="text-xs font-medium" style={{ color: "#4ade80" }}>
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: "#4ade80" }}
+                >
                   {accuracy.accuracy}% accuracy
                 </span>
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   · last {accuracy.total}
                 </span>
               </div>

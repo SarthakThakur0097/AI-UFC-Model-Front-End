@@ -145,3 +145,35 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
     return []
   }
 }
+
+// ---------------------------------------------------------------------------
+// Model calibration — cached server-side (precompute_calibration.py),
+// refreshed weekly alongside the rest of the pipeline. Pure cache read here,
+// same pattern as getAccuracy / getPastCards.
+// ---------------------------------------------------------------------------
+
+export type CalibrationBucket = {
+  bucket: string // e.g. "65-70"
+  n: number
+  avg_predicted: number | null
+  accuracy_pct: number | null
+  calibration_gap: number | null
+  low_sample: boolean
+}
+
+export type Calibration = {
+  computed_at: string
+  total_fights: number
+  overall_accuracy: number
+  buckets: CalibrationBucket[]
+}
+
+export async function getCalibration(): Promise<Calibration | null> {
+  try {
+    const res = await fetch(`${API_URL}/calibration`, { next: { revalidate: 300 } })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}

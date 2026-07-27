@@ -54,6 +54,17 @@ export default function Navbar({
         >
           Past cards
         </a>
+        <a
+          href="/?tab=calibration"
+          className={tabBase}
+          style={
+            activeTab === "calibration"
+              ? { background: "#262626", color: "#fff" }
+              : { color: "#777" }
+          }
+        >
+          Calibration
+        </a>
       </div>
 
       {/* AI picks status */}
