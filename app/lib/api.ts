@@ -27,7 +27,21 @@ export async function getPrediction(f1: string, f2: string) {
   }
 }
 
-export async function getAccuracy() {
+export type VegasComparison = {
+  correct: number
+  total: number
+  accuracy: number | null
+  window: string
+}
+
+export type AccuracyResponse = {
+  correct: number
+  total: number
+  accuracy: number
+  vegas?: VegasComparison
+}
+
+export async function getAccuracy(): Promise<AccuracyResponse | null> {
   try {
     const res = await fetch(`${API_URL}/accuracy`, { cache: 'no-store' })
     return res.json()
@@ -171,6 +185,48 @@ export type Calibration = {
 export async function getCalibration(): Promise<Calibration | null> {
   try {
     const res = await fetch(`${API_URL}/calibration`, { next: { revalidate: 300 } })
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Underdog / value-pick accuracy — computed live on every request (NOT
+// cached like getCalibration), so it reflects the DB as it grows. Two
+// distinct stats, see routes_content.py's /calibration/underdogs docstring
+// for the difference between "underdog" and "value_pick".
+// ---------------------------------------------------------------------------
+
+export type UnderdogPick = {
+  fight_id: string
+  event_name: string
+  event_date: string
+  pick: string
+  opponent: string
+  pick_odds: number | null
+  vegas_implied_pct: number
+  model_prob_pct: number
+}
+
+export type UnderdogStat = {
+  correct: number
+  total: number
+  accuracy: number | null
+  low_sample: boolean
+  definition: string
+  picks?: UnderdogPick[]
+}
+
+export type UnderdogResponse = {
+  underdog: UnderdogStat
+  value_pick: UnderdogStat
+}
+
+export async function getUnderdogStats(): Promise<UnderdogResponse | null> {
+  try {
+    const res = await fetch(`${API_URL}/calibration/underdogs`, { next: { revalidate: 300 } })
     if (!res.ok) return null
     return res.json()
   } catch {

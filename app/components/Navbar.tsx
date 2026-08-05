@@ -65,6 +65,17 @@ export default function Navbar({
         >
           Calibration
         </a>
+        <a
+          href="/?tab=methodology"
+          className={tabBase}
+          style={
+            activeTab === "methodology"
+              ? { background: "#262626", color: "#fff" }
+              : { color: "#777" }
+          }
+        >
+          Methodology
+        </a>
       </div>
 
       {/* AI picks status */}

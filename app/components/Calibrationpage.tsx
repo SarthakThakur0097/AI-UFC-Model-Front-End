@@ -16,7 +16,7 @@
 // betting edge against the market — no edge against the closing line has
 // been demonstrated, and this page stays scoped to what the data shows.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import {
   Chart,
   BarController,
@@ -30,7 +30,13 @@ import {
   Tooltip,
   type ChartConfiguration,
 } from "chart.js";
-import type { Calibration, CalibrationBucket } from "../lib/api";
+import type {
+  Calibration,
+  CalibrationBucket,
+  UnderdogResponse,
+  UnderdogStat,
+  UnderdogPick,
+} from "../lib/api";
 
 Chart.register(
   BarController,
@@ -66,6 +72,16 @@ async function fetchCalibration(): Promise<Calibration | null> {
   }
 }
 
+async function fetchUnderdogs(): Promise<UnderdogResponse | null> {
+  try {
+    const res = await fetch(`${API_URL}/calibration/underdogs`);
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 function BarView({ buckets }: { buckets: CalibrationBucket[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
@@ -77,8 +93,12 @@ function BarView({ buckets }: { buckets: CalibrationBucket[] }) {
 
     const predictedColors = real.map((b) => (b.low_sample ? BLUE_DIM : BLUE));
     const actualColors = real.map((b) => (b.low_sample ? GREEN_DIM : GREEN));
-    const predictedBorders = real.map((b) => (b.low_sample ? BLUE : "transparent"));
-    const actualBorders = real.map((b) => (b.low_sample ? GREEN : "transparent"));
+    const predictedBorders = real.map((b) =>
+      b.low_sample ? BLUE : "transparent",
+    );
+    const actualBorders = real.map((b) =>
+      b.low_sample ? GREEN : "transparent",
+    );
 
     const config: ChartConfiguration<"bar"> = {
       type: "bar",
@@ -234,7 +254,8 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
                 const all = [...reliable, ...lowSample];
                 const match = all.find(
                   (b) =>
-                    Math.abs((b.avg_predicted ?? 0) - (ctx.raw as any).x) < 0.05 &&
+                    Math.abs((b.avg_predicted ?? 0) - (ctx.raw as any).x) <
+                      0.05 &&
                     Math.abs((b.accuracy_pct ?? 0) - (ctx.raw as any).y) < 0.05,
                 );
                 const n = match ? match.n : "?";
@@ -248,14 +269,24 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
           x: {
             min: 45,
             max: 105,
-            title: { display: true, text: "predicted %", color: "#3a5c47", font: { family: MONO, size: 12 } },
+            title: {
+              display: true,
+              text: "predicted %",
+              color: "#3a5c47",
+              font: { family: MONO, size: 12 },
+            },
             ticks: { color: MUTED_TEXT, font: { family: MONO, size: 12 } },
             grid: { color: GRID },
           },
           y: {
             min: 45,
             max: 105,
-            title: { display: true, text: "actual %", color: "#3a5c47", font: { family: MONO, size: 12 } },
+            title: {
+              display: true,
+              text: "actual %",
+              color: "#3a5c47",
+              font: { family: MONO, size: 12 },
+            },
             ticks: { color: MUTED_TEXT, font: { family: MONO, size: 12 } },
             grid: { color: GRID },
           },
@@ -268,7 +299,15 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
   }, [buckets]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: 360, maxWidth: 420, margin: "0 auto" }}>
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: 360,
+        maxWidth: 420,
+        margin: "0 auto",
+      }}
+    >
       <canvas
         ref={canvasRef}
         role="img"
@@ -278,16 +317,198 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
   );
 }
 
+function UnderdogStatCard({
+  label,
+  stat,
+}: {
+  label: string;
+  stat: UnderdogStat;
+}) {
+  const isLow = stat.low_sample && stat.total > 0;
+  const hasData = stat.total > 0 && stat.accuracy !== null;
+
+  return (
+    <div
+      className="rounded-xl px-4 py-3 flex-1"
+      style={{
+        background: "var(--bg-card)",
+        border: isLow ? `1px dashed ${AMBER}` : "1px solid var(--border)",
+      }}
+    >
+      <p className="text-xs font-medium text-white">{label}</p>
+      <p className="text-xs mt-0.5" style={{ color: MUTED_TEXT }}>
+        {stat.definition}
+      </p>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6,
+          marginTop: 8,
+        }}
+      >
+        <span
+          className="text-lg font-semibold"
+          style={{ color: hasData ? (isLow ? AMBER : "#4ade80") : MUTED_TEXT }}
+        >
+          {hasData ? `${stat.accuracy}%` : "—"}
+        </span>
+        <span className="text-xs" style={{ color: MUTED_TEXT }}>
+          {stat.correct}/{stat.total}
+          {isLow && "  (low sample)"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function formatOdds(odds: number | null): string {
+  if (odds === null) return "—";
+  return odds > 0 ? `+${odds}` : `${odds}`;
+}
+
+const PICKS_PER_PAGE = 5;
+
+function UnderdogPicksTable({ picks }: { picks: UnderdogPick[] }) {
+  const [page, setPage] = useState(0);
+
+  if (picks.length === 0) return null;
+
+  const totalPages = Math.ceil(picks.length / PICKS_PER_PAGE);
+  const start = page * PICKS_PER_PAGE;
+  const visible = picks.slice(start, start + PICKS_PER_PAGE);
+
+  return (
+    <div style={{ marginTop: 20, marginBottom: 20 }}>
+      <p
+        className="text-xs font-medium uppercase tracking-widest mb-2"
+        style={{ color: "var(--text-secondary)" }}
+      >
+        Correct underdog picks
+      </p>
+      <div
+        className="rounded-xl overflow-hidden"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        <div style={{ overflowX: "auto" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontFamily: MONO,
+            }}
+          >
+            <thead>
+              <tr style={{ background: "var(--bg-card)" }}>
+                <th style={thStyle}>Fight</th>
+                <th style={thStyle}>Odds</th>
+                <th style={thStyle}>Vegas implied</th>
+                <th style={thStyle}>Model prob.</th>
+                <th style={thStyle}>Event</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((p) => (
+                <tr
+                  key={p.fight_id}
+                  style={{ borderTop: "1px solid var(--border)" }}
+                >
+                  <td style={tdStyle}>
+                    <span style={{ color: GREEN }}>{p.pick}</span>
+                    <span style={{ color: MUTED_TEXT }}>
+                      {" "}
+                      def. {p.opponent}
+                    </span>
+                  </td>
+                  <td style={tdStyle}>{formatOdds(p.pick_odds)}</td>
+                  <td style={tdStyle}>{p.vegas_implied_pct}%</td>
+                  <td style={tdStyle}>{p.model_prob_pct}%</td>
+                  <td style={{ ...tdStyle, color: MUTED_TEXT, fontSize: 11 }}>
+                    {p.event_name}
+                    <br />
+                    {p.event_date}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 12px",
+              borderTop: "1px solid var(--border)",
+              background: "var(--bg-card)",
+            }}
+          >
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+              style={paginationBtnStyle(page === 0)}
+            >
+              ← Prev
+            </button>
+            <span style={{ fontSize: 11, color: MUTED_TEXT, fontFamily: MONO }}>
+              Page {page + 1} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              style={paginationBtnStyle(page >= totalPages - 1)}
+            >
+              Next →
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function paginationBtnStyle(disabled: boolean): CSSProperties {
+  return {
+    fontSize: 11,
+    fontFamily: MONO,
+    padding: "4px 10px",
+    borderRadius: 4,
+    border: "1px solid var(--border)",
+    background: "transparent",
+    color: disabled ? "#3a5c47" : "var(--matrix-green)",
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.5 : 1,
+  };
+}
+
+const thStyle: CSSProperties = {
+  textAlign: "left",
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+  color: "var(--text-secondary)",
+  padding: "10px 12px",
+};
+
+const tdStyle: CSSProperties = {
+  fontSize: 12,
+  padding: "10px 12px",
+  color: "var(--text-primary)",
+};
+
 export default function CalibrationPage() {
   const [data, setData] = useState<Calibration | null>(null);
+  const [underdogs, setUnderdogs] = useState<UnderdogResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"bars" | "scatter">("bars");
 
   useEffect(() => {
     let alive = true;
-    fetchCalibration().then((d) => {
+    Promise.all([fetchCalibration(), fetchUnderdogs()]).then(([cal, ud]) => {
       if (!alive) return;
-      setData(d);
+      setData(cal);
+      setUnderdogs(ud);
       setLoading(false);
     });
     return () => {
@@ -297,7 +518,14 @@ export default function CalibrationPage() {
 
   if (loading) {
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: MUTED_TEXT, padding: "40px 0" }}>
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: 12,
+          color: MUTED_TEXT,
+          padding: "40px 0",
+        }}
+      >
         Loading calibration data…
       </p>
     );
@@ -305,26 +533,41 @@ export default function CalibrationPage() {
 
   if (!data) {
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: MUTED_TEXT, padding: "40px 0" }}>
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: 12,
+          color: MUTED_TEXT,
+          padding: "40px 0",
+        }}
+      >
         Calibration data unavailable right now.
       </p>
     );
   }
 
-  const lowSampleCount = data.buckets.filter((b) => b.low_sample && b.n > 0).length;
+  const lowSampleCount = data.buckets.filter(
+    (b) => b.low_sample && b.n > 0,
+  ).length;
 
   return (
     <div>
       {/* headline numbers */}
       <div
         className="rounded-xl px-4 py-3 mb-5 flex items-center justify-between"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+        }}
       >
         <div>
           <p className="text-xs font-medium text-white">
             {data.total_fights.toLocaleString()} graded fights
           </p>
-          <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
+          <p
+            className="text-xs mt-0.5"
+            style={{ color: "var(--text-secondary)" }}
+          >
             Predicted probability vs. actual outcome, by confidence band
           </p>
         </div>
@@ -333,8 +576,35 @@ export default function CalibrationPage() {
         </span>
       </div>
 
+      {/* underdog / value-pick stats */}
+      {underdogs && (
+        <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
+          <UnderdogStatCard label="Underdog picks" stat={underdogs.underdog} />
+          <UnderdogStatCard label="Value picks" stat={underdogs.value_pick} />
+        </div>
+      )}
+      {underdogs && (
+        <p
+          style={{
+            fontSize: 11,
+            color: MUTED_TEXT,
+            marginBottom: 14,
+            lineHeight: 1.6,
+          }}
+        >
+          Underdogs win less than half the time by definition — this measures
+          whether the model's underdog picks land more often than a coin flip,
+          not whether the number itself is high.
+        </p>
+      )}
+      {underdogs?.underdog.picks && (
+        <UnderdogPicksTable picks={underdogs.underdog.picks} />
+      )}
+
       {/* toggle */}
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}>
+      <div
+        style={{ display: "flex", justifyContent: "center", marginBottom: 14 }}
+      >
         {(["bars", "scatter"] as const).map((v, i) => (
           <button
             key={v}
@@ -350,7 +620,8 @@ export default function CalibrationPage() {
               borderLeft: i === 0 ? "1px solid var(--border)" : "none",
               borderRadius: i === 0 ? "5px 0 0 5px" : "0 5px 5px 0",
               background: view === v ? "rgba(0,255,102,0.15)" : "transparent",
-              color: view === v ? "var(--matrix-green)" : "var(--text-secondary)",
+              color:
+                view === v ? "var(--matrix-green)" : "var(--text-secondary)",
             }}
           >
             {v === "bars" ? "Predicted vs actual" : "Calibration curve"}
@@ -360,13 +631,35 @@ export default function CalibrationPage() {
 
       {view === "bars" ? (
         <>
-          <div style={{ display: "flex", justifyContent: "center", gap: 16, marginBottom: 10, fontSize: 13 }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 16,
+              marginBottom: 10,
+              fontSize: 13,
+            }}
+          >
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <i style={{ width: 10, height: 10, background: BLUE, display: "inline-block" }} />
+              <i
+                style={{
+                  width: 10,
+                  height: 10,
+                  background: BLUE,
+                  display: "inline-block",
+                }}
+              />
               Predicted
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <i style={{ width: 10, height: 10, background: GREEN, display: "inline-block" }} />
+              <i
+                style={{
+                  width: 10,
+                  height: 10,
+                  background: GREEN,
+                  display: "inline-block",
+                }}
+              />
               Actual
             </span>
           </div>
@@ -376,17 +669,25 @@ export default function CalibrationPage() {
         <ScatterView buckets={data.buckets} />
       )}
 
-      <p style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", marginTop: 14, lineHeight: 1.7 }}>
-        Bands shown in orange/dashed have fewer than 25 graded fights — too
-        few to draw conclusions from.
+      <p
+        style={{
+          textAlign: "center",
+          fontSize: 12,
+          color: "#5f8f73",
+          marginTop: 14,
+          lineHeight: 1.7,
+        }}
+      >
+        Bands shown in orange/dashed have fewer than 25 graded fights — too few
+        to draw conclusions from.
         {lowSampleCount > 0 &&
           ` ${lowSampleCount} band${lowSampleCount > 1 ? "s" : ""} currently fall${
             lowSampleCount > 1 ? "" : "s"
           } into this category.`}
         <br />
         This measures how honest the model is about its own confidence — not
-        whether it beats the betting market. No edge against the closing line
-        has been demonstrated.
+        whether it beats the betting market. The underdog and value-pick stats
+        above are accuracy figures only, not profitability or ROI claims.
       </p>
     </div>
   );

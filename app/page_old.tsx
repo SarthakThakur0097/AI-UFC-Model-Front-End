@@ -2,7 +2,6 @@ import Navbar from "./components/Navbar";
 import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
 import CalibrationPage from "./components/Calibrationpage";
-import MethodologyPage from "./components/MethodologyPage";
 import { getPastCards, getAccuracy, getUpcomingFights } from "./lib/api";
 import MatrixRain from "./components/MatrixRain";
 
@@ -29,27 +28,6 @@ export default async function Home({
             Model Calibration
           </p>
           <CalibrationPage />
-        </div>
-      </main>
-    );
-  }
-
-  if (tab === "methodology") {
-    return (
-      <main
-        className="min-h-screen"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        <MatrixRain />
-        <Navbar activeTab="methodology" />
-        <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
-          <p
-            className="text-xs font-medium uppercase tracking-widest mb-2"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Methodology
-          </p>
-          <MethodologyPage />
         </div>
       </main>
     );
@@ -189,56 +167,32 @@ export default async function Home({
             <h1 className="text-xl font-semibold tracking-tight text-white">
               Upcoming Events
             </h1>
-            <div className="flex items-center gap-2">
-              {accuracy && (
-                <div
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                  style={{
-                    background: "rgba(74, 222, 128, 0.08)",
-                    border: "1px solid rgba(74, 222, 128, 0.2)",
-                  }}
+            {accuracy && (
+              <div
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+                style={{
+                  background: "rgba(74, 222, 128, 0.08)",
+                  border: "1px solid rgba(74, 222, 128, 0.2)",
+                }}
+              >
+                <span
+                  className="inline-block w-1.5 h-1.5 rounded-full"
+                  style={{ background: "#4ade80" }}
+                />
+                <span
+                  className="text-xs font-medium"
+                  style={{ color: "#4ade80" }}
                 >
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full"
-                    style={{ background: "#4ade80" }}
-                  />
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: "#4ade80" }}
-                  >
-                    {accuracy.accuracy}% accuracy
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    · last {accuracy.total}
-                  </span>
-                </div>
-              )}
-              {accuracy?.vegas && accuracy.vegas.accuracy !== null && (
-                <div
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                  style={{
-                    background: "rgba(148, 163, 184, 0.08)",
-                    border: "1px solid rgba(148, 163, 184, 0.2)",
-                  }}
+                  {accuracy.accuracy}% accuracy
+                </span>
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-muted)" }}
                 >
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    vs Vegas: {accuracy.vegas.accuracy}%
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    · {accuracy.vegas.window} baseline
-                  </span>
-                </div>
-              )}
-            </div>
+                  · last {accuracy.total}
+                </span>
+              </div>
+            )}
           </div>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             AI predictions for all bouts

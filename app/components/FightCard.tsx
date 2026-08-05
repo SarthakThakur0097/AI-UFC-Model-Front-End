@@ -5,6 +5,7 @@ import FightRadar from "./FightRadar";
 import MethodPerFighter from "./MethodPerFighter";
 import CommonOpponents from "./CommonOpponents";
 import FighterRating from "./FighterRating";
+import EndOfCardEmailCapture from "./EndOfCardEmailCapture";
 
 type Fight = {
   tag: string;
@@ -279,6 +280,11 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
           </div>
         );
       })}
+
+      {/* End-of-card email capture */}
+      <div style={{ paddingTop: 12 }}>
+        <EndOfCardEmailCapture source={`card_${event}`} />
+      </div>
     </div>
   );
 }
