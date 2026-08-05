@@ -14,7 +14,7 @@ export default function MethodologyPage() {
     <div className="flex flex-col gap-5">
       <div className="rounded-xl px-4 py-4" style={card}>
         <p className="text-sm leading-relaxed" style={body}>
-          FightAI is built on one rule: the numbers say what the model actually
+          MmaMatrix is built on one rule: the numbers say what the model actually
           believes, not what looks confident. Every stat on this site is
           explained below — including the places our models disagree with each
           other, and the places we haven&apos;t proven an edge yet.

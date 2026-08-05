@@ -23,7 +23,7 @@ export default function Navbar({
           style={{ boxShadow: "0 0 8px rgba(239,68,68,0.5)" }}
         />
         <span className="text-[15px] font-semibold text-white tracking-tight">
-          Fight<span className="text-red-500">AI</span>
+          Mma<span className="text-red-500">Matrix</span>
         </span>
       </div>
 
