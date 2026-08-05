@@ -3,7 +3,9 @@ import FightCard from "./components/FightCard";
 import PastCard from "./components/PastCard";
 import CalibrationPage from "./components/Calibrationpage";
 import MethodologyPage from "./components/MethodologyPage";
-import { getPastCards, getAccuracy, getUpcomingFights } from "./lib/api";
+import OddsPage from "./components/OddsPage";
+import { getPastCards, getAccuracy, getUpcomingFights, groupByEvent } from "./lib/api";
+import type { OddsEventGroup, PromptFightModel } from "./lib/oddsPrompt";
 import MatrixRain from "./components/MatrixRain";
 
 export default async function Home({
@@ -50,6 +52,59 @@ export default async function Home({
             Methodology
           </p>
           <MethodologyPage />
+        </div>
+      </main>
+    );
+  }
+
+  // Odds entry. Intentionally NOT linked from Navbar — this is a personal
+  // tool, reachable only by typing /?tab=odds. Unlisted, not access-controlled:
+  // the route still responds in production for anyone who knows the URL.
+  if (tab === "odds") {
+    const upcoming = await getUpcomingFights();
+
+    // Deliberately NOT reusing the `fightsWithPredictions` projection below:
+    // that one substitutes 50/50 probabilities for fights the model couldn't
+    // predict, which would manufacture a phantom edge against every real
+    // market price. Here an unpredicted fight carries hasPrediction: false and
+    // leaves every probability undefined.
+    const oddsFights: PromptFightModel[] = upcoming.map((f) => {
+      const hasPrediction = !f.error && f.pick !== undefined;
+      return {
+        event: f.event,
+        date: f.date,
+        tag: f.tag,
+        weightClass: f.weightClass,
+        f1: f.f1,
+        f2: f.f2,
+        hasPrediction,
+        pick: hasPrediction ? f.pick : undefined,
+        conf: hasPrediction ? f.conf : undefined,
+        f1Prob: hasPrediction ? f.f1Prob : undefined,
+        f2Prob: hasPrediction ? f.f2Prob : undefined,
+        method: f.method ?? null,
+        methodPerFighter: f.methodPerFighter ?? null,
+        // Ships with /upcoming already and measures ~5KB across a whole 52-fight
+        // slate, so carrying it through costs essentially nothing. Glicko and the
+        // radar are NOT here — those are fetched per fighter at generate time.
+        commonOpponents: f.commonOpponents ?? null,
+      };
+    });
+
+    const oddsGroups: OddsEventGroup[] = groupByEvent(oddsFights);
+
+    return (
+      <main className="min-h-screen" style={{ background: "var(--bg-primary)" }}>
+        <MatrixRain />
+        <Navbar activeTab="odds" />
+        <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
+          <p
+            className="text-xs font-medium uppercase tracking-widest mb-2"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Odds Entry
+          </p>
+          <OddsPage groups={oddsGroups} />
         </div>
       </main>
     );
@@ -161,21 +216,7 @@ export default async function Home({
   });
 
   // Group by event name preserving insertion order
-  const eventMap = new Map<
-    string,
-    { event: string; date: string; fights: typeof fightsWithPredictions }
-  >();
-  for (const fight of fightsWithPredictions) {
-    if (!eventMap.has(fight.event)) {
-      eventMap.set(fight.event, {
-        event: fight.event,
-        date: fight.date,
-        fights: [],
-      });
-    }
-    eventMap.get(fight.event)!.fights.push(fight);
-  }
-  const eventGroups = Array.from(eventMap.values());
+  const eventGroups = groupByEvent(fightsWithPredictions);
 
   const accuracy = await getAccuracy();
 

@@ -75,6 +75,9 @@ export type UpcomingFight = {
   f1Record: string
   f2: string
   f2Record: string
+  // Backend already sends this; the odds tab uses it because 3 vs 5 scheduled
+  // rounds materially changes total-rounds and distance reasoning.
+  weightClass?: string
   // prediction fields (precomputed; may be absent if the pipeline hasn't run)
   pick?: string
   conf?: number
@@ -93,6 +96,23 @@ export type MethodPerFighterData = {
   f2: { KO: number; Sub: number; Dec: number }
   f1_win: number
   f2_win: number
+}
+
+/**
+ * Flatten a fight list into per-event groups, preserving the order events and
+ * fights arrived in. Shared by the upcoming and odds tabs so the two can't
+ * drift apart.
+ */
+export function groupByEvent<T extends { event: string; date: string }>(
+  items: T[]
+): { event: string; date: string; fights: T[] }[] {
+  const map = new Map<string, { event: string; date: string; fights: T[] }>()
+  for (const item of items) {
+    const group = map.get(item.event)
+    if (group) group.fights.push(item)
+    else map.set(item.event, { event: item.event, date: item.date, fights: [item] })
+  }
+  return Array.from(map.values())
 }
 
 // derive Main / Co-Main / Featured / Prelim from card position
@@ -142,6 +162,7 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
           f1Record: '',
           f2: f.f2,
           f2Record: '',
+          weightClass: f.weight_class,
           // carry predictions straight through (already computed server-side)
           pick: f.pick,
           conf: f.confidence,
