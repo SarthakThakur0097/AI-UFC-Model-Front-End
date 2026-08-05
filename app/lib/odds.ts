@@ -18,9 +18,6 @@ export type FighterSlot = 'f1' | 'f2'
 export const METHOD3 = ['ko', 'sub', 'dec'] as const
 export type Method3 = (typeof METHOD3)[number]
 
-export const METHOD5 = ['ko', 'sub', 'udec', 'sdec', 'mdec'] as const
-export type Method5 = (typeof METHOD5)[number]
-
 export const DC_COMBOS = ['ko_dec', 'ko_sub', 'sub_dec'] as const
 export type DoubleChanceCombo = (typeof DC_COMBOS)[number]
 
@@ -31,7 +28,8 @@ export type MethodKey = `${FighterSlot}_${Method3}`
 export type DistanceKey = 'yes' | 'no'
 export type MethodDoubleKey = `${FighterSlot}_${DoubleChanceCombo}`
 export type AltMethodDoubleKey = `f1${Capitalize<Method3>}_f2${Capitalize<Method3>}`
-export type ExactMethodKey = `${FighterSlot}_${Method5}`
+/** Fight-level: how the fight ends, either fighter. No fighter slot. */
+export type FightMethodKey = Method3
 
 /**
  * Per-fight odds. One level of nesting (market -> flat composite keys) because
@@ -51,7 +49,12 @@ export type FightOdds<V = string> = {
   distance?: Partial<Record<DistanceKey, V>>
   methodDouble?: Partial<Record<MethodDoubleKey, V>>
   altMethodDouble?: Partial<Record<AltMethodDoubleKey, V>>
-  exactMethod?: Partial<Record<ExactMethodKey, V>>
+  /**
+   * Renamed from `exactMethod`, which was modelled per-fighter and therefore
+   * duplicated `method`. Any odds saved under the old key are simply never read
+   * — the loader only walks markets that exist in MARKETS.
+   */
+  fightMethod?: Partial<Record<FightMethodKey, V>>
 }
 
 export type MarketId = keyof FightOdds
@@ -123,14 +126,6 @@ const METHOD3_LABEL: Record<Method3, string> = {
   dec: 'Decision',
 }
 
-const METHOD5_LABEL: Record<Method5, string> = {
-  ko: 'KO/TKO',
-  sub: 'Submission',
-  udec: 'Unanimous decision',
-  sdec: 'Split decision',
-  mdec: 'Majority decision',
-}
-
 const DC_LABEL: Record<DoubleChanceCombo, string> = {
   ko_dec: 'KO/TKO or Decision',
   ko_sub: 'KO/TKO or Submission',
@@ -164,18 +159,19 @@ const method3Fields = <M extends MarketId>(): MarketField<M>[] =>
     }))
   )
 
-const method5Fields = <M extends MarketId>(): MarketField<M>[] =>
-  (['f1', 'f2'] as const).flatMap((slot) =>
-    METHOD5.map((m) => ({
-      key: `${slot}_${m}` as FieldKeyOf<M>,
-      kind: 'odds' as const,
-      label: (f1: string, f2: string) => `${lastName(nameFor(slot, f1, f2))} ${METHOD5_LABEL[m]}`,
-      promptLabel: (f1: string, f2: string) =>
-        `${nameFor(slot, f1, f2)} by ${METHOD5_LABEL[m]}`,
-      rowLabel: () => METHOD5_LABEL[m],
-      placeholder: '+400',
-    }))
-  )
+/**
+ * Fight-level outcomes — how the fight ends, either fighter. Three legs, no
+ * fighter slot; this is the market the backend's fight-level `method`
+ * distribution maps to directly.
+ */
+const fightMethodFields = (): MarketField<'fightMethod'>[] =>
+  METHOD3.map((m) => ({
+    key: m as FightMethodKey,
+    kind: 'odds' as const,
+    label: () => METHOD3_LABEL[m],
+    promptLabel: () => `Fight ends by ${METHOD3_LABEL[m]} (either fighter)`,
+    placeholder: '+150',
+  }))
 
 const doubleChanceFields = <M extends MarketId>(): MarketField<M>[] =>
   (['f1', 'f2'] as const).flatMap((slot) =>
@@ -208,7 +204,6 @@ const altDoubleChanceFields = (): MarketField<'altMethodDouble'>[] =>
   )
 
 const METHOD_KEYS = (['f1', 'f2'] as const).flatMap((s) => METHOD3.map((m) => `${s}_${m}`))
-const EXACT_KEYS = (['f1', 'f2'] as const).flatMap((s) => METHOD5.map((m) => `${s}_${m}`))
 const DC_KEYS = (['f1', 'f2'] as const).flatMap((s) => DC_COMBOS.map((c) => `${s}_${c}`))
 const ALT_DC_KEYS = altDoubleChanceFields().map((f) => f.key as string)
 
@@ -311,8 +306,9 @@ export const MARKETS: readonly AnyMarketSpec[] = [
   },
   {
     id: 'method',
-    title: 'Method of victory',
-    promptTitle: 'METHOD OF VICTORY',
+    title: 'Method of victory (per fighter)',
+    promptTitle: 'METHOD OF VICTORY (PER FIGHTER)',
+    hint: 'Who wins AND how, e.g. "Gamrot by KO/TKO".',
     layout: 'grid3x2',
     isComplete: allOddsLegsPresent(METHOD_KEYS),
     mirrorKey: swapSlotPrefix,
@@ -367,14 +363,15 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     fields: altDoubleChanceFields(),
   },
   {
-    id: 'exactMethod',
-    title: 'Exact method of victory',
-    promptTitle: 'EXACT METHOD OF VICTORY',
-    hint: 'Decision split into unanimous / split / majority.',
-    layout: 'grid5x2',
-    isComplete: allOddsLegsPresent(EXACT_KEYS),
-    mirrorKey: swapSlotPrefix,
-    fields: method5Fields<'exactMethod'>(),
+    id: 'fightMethod',
+    title: 'Exact method (either fighter)',
+    promptTitle: 'EXACT METHOD — HOW THE FIGHT ENDS',
+    hint: 'How the fight ends regardless of who wins. Not tied to a fighter.',
+    layout: 'pair',
+    isComplete: allOddsLegsPresent([...METHOD3]),
+    // Fight-level, so there is no f1/f2 slot to mirror.
+    mirrorKey: (k) => k,
+    fields: fightMethodFields(),
   },
 ]
 
