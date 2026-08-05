@@ -9,6 +9,7 @@
 // has no dependency outside odds.ts and never drags fetch/API_URL into a
 // client bundle.
 
+import { ADVISOR_SYSTEM_PROMPT } from './advisorSystemPrompt'
 import {
   MARKETS,
   devig,
@@ -202,12 +203,13 @@ function modelProbFor(
       return a === null || b === null ? null : a + b
     }
 
-    case 'exactMethod': {
-      // KO and Sub map straight across; the model has no decision-type split,
-      // so udec/sdec/mdec deliberately return null rather than a third of Dec.
-      const mm = /^(f1|f2)_(ko|sub)$/.exec(key)
-      if (!mm) return null
-      return perFighter(mm[1] as 'f1' | 'f2', METHOD_FIELD[mm[2]])
+    case 'fightMethod': {
+      // Fight-level, so this maps straight onto the model's own fight-level
+      // method distribution — no per-fighter summing or derivation needed.
+      if (!m.method) return null
+      const v =
+        key === 'ko' ? m.method['KO/TKO'] : key === 'sub' ? m.method.Submission : key === 'dec' ? m.method.Decision : undefined
+      return typeof v === 'number' ? v / 100 : null
     }
 
     // No model signal at all.
@@ -453,28 +455,18 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
   const withOdds = input.fights.filter((f) => hasAnyOdds(f.odds))
   const lines: string[] = []
 
-  lines.push(
-    'You are an expert MMA betting analyst. Below are upcoming UFC fights with (a) my',
-    "model's predictions and (b) sportsbook odds I entered by hand. Produce a best-bets",
-    'master sheet.',
-    '',
-    'TASK',
-    "1. For each market where odds were supplied, compare the market's implied probability",
-    "   (de-vigged where a complete market was entered) against the model's probability for",
-    '   the same outcome. Edge = model% - no-vig%.',
-    '2. Rank every positive-edge play. Assign a stake tier (1-3u) reflecting BOTH edge size',
-    '   and how much the model actually knows about that market (see caveats).',
-    '3. Output the master sheet table first, then 2-3 sentences of reasoning per recommended',
-    '   bet, then an explicit PASS list with reasons.',
-    '4. Do not invent numbers. If the model provides no basis for a market, say so and pass.',
-    '5. Use the rating, radar, and common-opponent data to justify or challenge each edge —',
-    '   especially for markets the model does not directly cover (total rounds, distance).',
-    '   A big model-vs-market gap that the supporting data contradicts is a red flag, not a bet.',
-    ''
-  )
+  // Standing instructions first. These deliberately supersede any "rank every
+  // positive-edge play" framing — §2 of that document measures that exact
+  // strategy losing money.
+  lines.push(ADVISOR_SYSTEM_PROMPT, '', '='.repeat(78), '')
 
   lines.push(
     'DATA CAVEATS — read before reasoning',
+    '- These notes describe how THIS payload was assembled. Where they touch on betting',
+    '  policy, the system prompt above wins.',
+    '- The method percentages below were computed for ONE fighter order only. The system',
+    '  prompt asks you to average the method output over both orders — that is NOT possible',
+    '  with this payload, so treat method probabilities as carrying that extra uncertainty.',
     `- Odds were typed manually at ${input.generatedAt} and may be stale. Book: ${book}.`,
     '- A missing market or leg means "I did not enter it", NOT "it is unavailable" and NOT',
     '  "the price is bad". Never infer anything from absence.',
@@ -485,8 +477,16 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
     '  so, and discount your confidence accordingly.',
     '- Fight-level METHOD and METHOD PER FIGHTER come from two different models and may not',
     '  reconcile. Per-fighter sums are printed so you can see the normalization convention.',
-    '- Exact method of victory has no model split between unanimous / split / majority',
-    '  decision; only the KO/TKO and Submission legs carry a model number.',
+    '- There are two distinct method markets here, and they are NOT the same bet:',
+    '    METHOD OF VICTORY (PER FIGHTER) — who wins and how ("Gamrot by KO/TKO"), priced',
+    '      against the model\'s per-fighter method distribution.',
+    '    EXACT METHOD — HOW THE FIGHT ENDS — the finish type regardless of who wins,',
+    '      priced against the model\'s fight-level method distribution.',
+    '  The second is the sum of the first over both fighters, so they are not independent',
+    '  signals. Do not stack a bet on both sides of the same underlying outcome.',
+    '- FIGHT GOES THE DISTANCE overlaps both: Yes is the same event as EXACT METHOD',
+    '  Decision, and No is KO/TKO + Submission. Price whichever market is best; do not',
+    '  treat agreement between them as independent confirmation.',
     '- FIGHTER RATING is Glicko: a rating number plus a percentile. NOTE the two',
     '  percentiles in this prompt have DIFFERENT denominators — the Glicko percentile is',
     '  against every fighter in the database regardless of weight class, while every',
@@ -561,11 +561,12 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
     )
   }
 
+  // No output-format block here: §6 of the system prompt already specifies one,
+  // and a second competing spec would just muddy it.
   lines.push(
     '',
-    'OUTPUT FORMAT',
-    '| # | Fight | Market | Side | Odds | No-vig % | Model % | Edge | Tier |',
-    'Then per-bet reasoning, then the PASS list.'
+    'Work through the fights above using the decision rules in §4 of the system prompt,',
+    'and report in the §6 format. Saying "no bet on this entire card" is a valid answer.'
   )
 
   return lines.join('\n')
