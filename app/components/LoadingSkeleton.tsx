@@ -1,37 +1,57 @@
+// Skeleton mirrors the redesigned card anatomy: header, a taller hero box,
+// then quiet one-line rows. Shimmer blocks use the inset well color.
 export default function LoadingSkeleton() {
+  const block = { background: "var(--bg-inset)" } as const;
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden animate-pulse">
-      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+    <div
+      className="rounded-xl overflow-hidden animate-pulse"
+      style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+    >
+      {/* Header */}
+      <div className="px-5 pt-5 pb-4 flex items-baseline justify-between">
         <div>
-          <div className="h-4 w-36 bg-gray-100 rounded mb-1"></div>
-          <div className="h-3 w-48 bg-gray-100 rounded"></div>
+          <div className="h-4 w-48 rounded mb-2" style={block}></div>
+          <div className="h-3 w-32 rounded" style={block}></div>
         </div>
-        <div className="h-6 w-20 bg-gray-100 rounded-md"></div>
+        <div className="h-6 w-20 rounded" style={block}></div>
       </div>
 
-      {[1, 2, 3, 4, 5, 6].map((i) => (
+      <div className="px-5 pb-5 flex flex-col gap-2.5">
+        {/* Hero box */}
         <div
-          key={i}
-          className={`px-4 py-3 flex items-center gap-4 ${i < 6 ? "border-b border-gray-100" : ""}`}
+          className="rounded-[10px] p-4"
+          style={{ border: "1px solid var(--border)" }}
         >
-          <div className="h-3 w-14 bg-gray-100 rounded shrink-0"></div>
-          <div className="w-36 shrink-0">
-            <div className="h-4 w-28 bg-gray-100 rounded mb-1"></div>
-            <div className="h-3 w-16 bg-gray-100 rounded"></div>
+          <div className="h-4 w-24 rounded mb-4" style={block}></div>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-[38px] h-[38px] rounded-full" style={block}></div>
+              <div className="h-4 w-32 rounded" style={block}></div>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-32 rounded" style={block}></div>
+              <div className="w-[38px] h-[38px] rounded-full" style={block}></div>
+            </div>
           </div>
-          <div className="h-3 w-4 bg-gray-100 rounded shrink-0"></div>
-          <div className="w-36 shrink-0">
-            <div className="h-4 w-28 bg-gray-100 rounded mb-1"></div>
-            <div className="h-3 w-16 bg-gray-100 rounded"></div>
-          </div>
-          <div className="flex-1" />
-          <div className="w-20 shrink-0">
-            <div className="h-3 w-16 bg-gray-100 rounded mb-1 ml-auto"></div>
-            <div className="h-1 w-20 bg-gray-100 rounded"></div>
-            <div className="h-3 w-10 bg-gray-100 rounded mt-1 ml-auto"></div>
-          </div>
+          <div className="h-[5px] rounded-full" style={block}></div>
         </div>
-      ))}
+
+        {/* Quiet rows */}
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            className="rounded-[10px] px-4 py-3 flex items-center justify-between gap-3"
+            style={{ border: "1px solid var(--border)" }}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="h-4 w-12 rounded" style={block}></div>
+              <div className="h-4 w-52 rounded" style={block}></div>
+            </div>
+            <div className="h-3 w-20 rounded" style={block}></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -52,15 +52,18 @@ Chart.register(
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
-const MONO = "'Courier New', monospace";
-const GREEN = "#00ff66";
-const GREEN_DIM = "rgba(0,255,102,0.25)";
-const BLUE = "#39c0ff";
-const BLUE_DIM = "rgba(57,192,255,0.25)";
+// Literal values (not CSS vars) because several of these feed chart.js,
+// which paints to canvas where var() never resolves. Keep in sync with the
+// token palette in globals.css.
+const MONO = "'JetBrains Mono', ui-monospace, Consolas, monospace";
+const GREEN = "#5dcaa5";
+const GREEN_DIM = "rgba(93,202,165,0.25)";
+const BLUE = "#7fa4c2";
+const BLUE_DIM = "rgba(127,164,194,0.25)";
 const AMBER = "#ff9a4d";
 const AMBER_DIM = "rgba(255,154,77,0.18)";
-const MUTED_TEXT = "#5f8f73";
-const GRID = "rgba(0,255,102,0.08)";
+const MUTED_TEXT = "#7a8580";
+const GRID = "rgba(93,202,165,0.08)";
 
 async function fetchCalibration(): Promise<Calibration | null> {
   try {
@@ -130,7 +133,7 @@ function BarView({ buckets }: { buckets: CalibrationBucket[] }) {
           legend: { display: false },
           tooltip: {
             backgroundColor: "rgba(0,14,6,0.95)",
-            borderColor: "rgba(0,255,102,0.3)",
+            borderColor: "rgba(93,202,165,0.35)",
             borderWidth: 1,
             titleFont: { family: MONO, size: 13 },
             bodyFont: { family: MONO, size: 13 },
@@ -202,7 +205,7 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
               { x: 48, y: 48 },
               { x: 102, y: 102 },
             ] as any,
-            borderColor: "#3a5c47",
+            borderColor: "#565f5a",
             borderDash: [5, 4],
             borderWidth: 1,
             pointRadius: 0,
@@ -245,7 +248,7 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
           legend: { display: false },
           tooltip: {
             backgroundColor: "rgba(0,14,6,0.95)",
-            borderColor: "rgba(0,255,102,0.3)",
+            borderColor: "rgba(93,202,165,0.35)",
             borderWidth: 1,
             titleFont: { family: MONO, size: 13 },
             bodyFont: { family: MONO, size: 13 },
@@ -272,7 +275,7 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
             title: {
               display: true,
               text: "predicted %",
-              color: "#3a5c47",
+              color: "#565f5a",
               font: { family: MONO, size: 12 },
             },
             ticks: { color: MUTED_TEXT, font: { family: MONO, size: 12 } },
@@ -284,7 +287,7 @@ function ScatterView({ buckets }: { buckets: CalibrationBucket[] }) {
             title: {
               display: true,
               text: "actual %",
-              color: "#3a5c47",
+              color: "#565f5a",
               font: { family: MONO, size: 12 },
             },
             ticks: { color: MUTED_TEXT, font: { family: MONO, size: 12 } },
@@ -335,7 +338,7 @@ function UnderdogStatCard({
         border: isLow ? `1px dashed ${AMBER}` : "1px solid var(--border)",
       }}
     >
-      <p className="text-xs font-medium text-white">{label}</p>
+      <p className="text-xs font-medium text-[#e8ede9]">{label}</p>
       <p className="text-xs mt-0.5" style={{ color: MUTED_TEXT }}>
         {stat.definition}
       </p>
@@ -349,7 +352,7 @@ function UnderdogStatCard({
       >
         <span
           className="text-lg font-semibold"
-          style={{ color: hasData ? (isLow ? AMBER : "#4ade80") : MUTED_TEXT }}
+          style={{ color: hasData ? (isLow ? AMBER : "#5dcaa5") : MUTED_TEXT }}
         >
           {hasData ? `${stat.accuracy}%` : "—"}
         </span>
@@ -476,7 +479,7 @@ function paginationBtnStyle(disabled: boolean): CSSProperties {
     borderRadius: 4,
     border: "1px solid var(--border)",
     background: "transparent",
-    color: disabled ? "#3a5c47" : "var(--matrix-green)",
+    color: disabled ? "#565f5a" : "var(--matrix-green)",
     cursor: disabled ? "default" : "pointer",
     opacity: disabled ? 0.5 : 1,
   };
@@ -561,7 +564,7 @@ export default function CalibrationPage() {
         }}
       >
         <div>
-          <p className="text-xs font-medium text-white">
+          <p className="text-xs font-medium text-[#e8ede9]">
             {data.total_fights.toLocaleString()} graded fights
           </p>
           <p
@@ -571,7 +574,7 @@ export default function CalibrationPage() {
             Predicted probability vs. actual outcome, by confidence band
           </p>
         </div>
-        <span className="text-lg font-semibold" style={{ color: "#4ade80" }}>
+        <span className="text-lg font-semibold" style={{ color: "#5dcaa5" }}>
           {data.overall_accuracy}%
         </span>
       </div>
@@ -619,7 +622,7 @@ export default function CalibrationPage() {
               border: "1px solid var(--border)",
               borderLeft: i === 0 ? "1px solid var(--border)" : "none",
               borderRadius: i === 0 ? "5px 0 0 5px" : "0 5px 5px 0",
-              background: view === v ? "rgba(0,255,102,0.15)" : "transparent",
+              background: view === v ? "rgba(93,202,165,0.14)" : "transparent",
               color:
                 view === v ? "var(--matrix-green)" : "var(--text-secondary)",
             }}
@@ -673,7 +676,7 @@ export default function CalibrationPage() {
         style={{
           textAlign: "center",
           fontSize: 12,
-          color: "#5f8f73",
+          color: "#7a8580",
           marginTop: 14,
           lineHeight: 1.7,
         }}

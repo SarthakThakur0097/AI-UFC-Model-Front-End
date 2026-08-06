@@ -1,94 +1,90 @@
+const TABS = [
+  { id: "upcoming", label: "Upcoming" },
+  { id: "past", label: "Past cards" },
+  { id: "calibration", label: "Calibration" },
+  { id: "methodology", label: "Methodology" },
+];
+
 export default function Navbar({
   activeTab = "upcoming",
 }: {
   activeTab?: string;
 }) {
-  const tabBase =
-    "px-4 py-1.5 text-sm rounded-md font-medium transition-colors";
-
   return (
     <nav
       style={{
-        background: "rgba(20,20,20,0.8)",
+        background: "rgba(10, 13, 10, 0.82)",
         backdropFilter: "blur(8px)",
         WebkitBackdropFilter: "blur(8px)",
-        borderBottom: "1px solid #222",
+        borderBottom: "1px solid var(--border)",
       }}
-      className="px-6 h-[60px] flex items-center justify-between sticky top-0 z-50"
+      className="px-4 sm:px-6 h-[60px] flex items-center justify-between gap-3 sticky top-0 z-50"
     >
       {/* Logo */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <div
-          className="w-[7px] h-[7px] rounded-full bg-red-500"
-          style={{ boxShadow: "0 0 8px rgba(239,68,68,0.5)" }}
+          className="w-[7px] h-[7px] rounded-full"
+          style={{ background: "var(--matrix-green)" }}
         />
-        <span className="text-[15px] font-semibold text-white tracking-tight">
-          Mma<span className="text-red-500">Matrix</span>
+        <span
+          className="text-[15px] font-semibold tracking-tight"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Mma<span style={{ color: "var(--matrix-green)" }}>Matrix</span>
         </span>
       </div>
 
-      {/* Segmented tabs */}
-      <div
-        className="flex gap-0.5 p-[3px] rounded-[10px]"
-        style={{ background: "#141414", border: "1px solid #242424" }}
-      >
-        <a
-          href="/?tab=upcoming"
-          className={tabBase}
-          style={
-            activeTab === "upcoming"
-              ? { background: "#262626", color: "#fff" }
-              : { color: "#777" }
-          }
-        >
-          Upcoming
-        </a>
-        <a
-          href="/?tab=past"
-          className={tabBase}
-          style={
-            activeTab === "past"
-              ? { background: "#262626", color: "#fff" }
-              : { color: "#777" }
-          }
-        >
-          Past cards
-        </a>
-        <a
-          href="/?tab=calibration"
-          className={tabBase}
-          style={
-            activeTab === "calibration"
-              ? { background: "#262626", color: "#fff" }
-              : { color: "#777" }
-          }
-        >
-          Calibration
-        </a>
-        <a
-          href="/?tab=methodology"
-          className={tabBase}
-          style={
-            activeTab === "methodology"
-              ? { background: "#262626", color: "#fff" }
-              : { color: "#777" }
-          }
-        >
-          Methodology
-        </a>
+      {/* Tabs — plain text with a sage underline on the active one, sitting on
+          the nav's bottom border. Scrolls horizontally instead of wrapping when
+          the viewport is too narrow to fit all four. */}
+      <div className="no-scrollbar flex items-center gap-0.5 h-full overflow-x-auto min-w-0">
+        {TABS.map((tab) => {
+          const active = activeTab === tab.id;
+          return (
+            <a
+              key={tab.id}
+              href={`/?tab=${tab.id}`}
+              className="relative h-full flex items-center px-3 sm:px-4 text-[13px] whitespace-nowrap transition-colors"
+              style={{
+                color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                fontWeight: active ? 600 : 500,
+              }}
+            >
+              {tab.label}
+              {active && (
+                <span
+                  className="absolute bottom-0 left-3 right-3 sm:left-4 sm:right-4 rounded-full"
+                  style={{ height: 2, background: "var(--matrix-green)" }}
+                />
+              )}
+            </a>
+          );
+        })}
       </div>
 
-      {/* AI picks status */}
+      {/* AI picks status — hidden on phones, where the tabs need the room */}
       <div
-        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg"
-        style={{
-          color: "#aaa",
-          border: "1px solid #2a2a2a",
-          background: "#161616",
-        }}
+        className="hidden md:flex items-center gap-[7px] px-3 py-1.5 rounded-full shrink-0"
+        style={{ border: "1px solid var(--bg-inset)" }}
       >
-        <span className="inline-block w-[5px] h-[5px] rounded-full bg-green-400" />
-        AI picks
+        <span
+          className="relative inline-block w-[6px] h-[6px] rounded-full"
+          style={{ background: "var(--matrix-green)" }}
+        >
+          <span
+            className="absolute rounded-full"
+            style={{
+              inset: -3,
+              border: "1px solid rgba(93, 202, 165, 0.4)",
+            }}
+          />
+        </span>
+        <span
+          className="text-xs font-medium"
+          style={{ color: "var(--text-data)" }}
+        >
+          AI picks live
+        </span>
       </div>
     </nav>
   );

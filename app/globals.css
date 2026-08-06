@@ -4,29 +4,63 @@ nextjs-portal {
 }
 
 :root {
-  /* Matrix theme */
-  --bg-primary: #000600;
-  --bg-card: rgba(0, 20, 8, 0.72);
-  --bg-detail: rgba(0, 14, 6, 0.85);
-  --border: rgba(0, 255, 102, 0.22);
-  --border-hover: rgba(0, 255, 102, 0.5);
-  --text-primary: #c9ffe0;
-  --text-secondary: #5f8f73;
-  --text-muted: #3a5c47;
-  --matrix-green: #00ff66;
-  --matrix-green-dim: #0a9c46;
-  --matrix-red: #ff3b5c;
-  --matrix-blue: #39c0ff;
+  /* Refined matrix theme — muted sage on warm near-black. Premium register:
+     no neon, no glow, sans-serif prose with monospace reserved for data.
+     Variable NAMES are kept from the neon theme so consumers didn't move. */
+  --bg-primary: #080b09;
+  --bg-card: rgba(13, 17, 14, 0.88);
+  --bg-detail: rgba(9, 12, 10, 0.92);
+  --bg-inset: #1a2420; /* avatar wells, bar tracks */
+  --border: #1f2b24;
+  --border-hover: rgba(93, 202, 165, 0.45);
+  --border-accent: rgba(93, 202, 165, 0.35); /* hero card outline */
+  --text-primary: #e8ede9;
+  --text-secondary: #7a8580;
+  --text-muted: #565f5a;
+  --text-data: #8fa89d; /* mono numerals on quiet rows */
+  --matrix-green: #5dcaa5;
+  --matrix-green-dim: #35705d;
+  --matrix-red: #d9788a;
+  --matrix-blue: #7fa4c2;
+  --accent-soft: rgba(93, 202, 165, 0.08);
+  --accent-soft-2: rgba(93, 202, 165, 0.14);
+  /* caution/attention labels (disagree badge, EXPERIMENTAL). Deliberately NOT
+     rose: rose is scoped to fighter-2 identity and negative outcomes, and a
+     neutral heads-up must not read as either. */
+  --amber: #e0a458;
+  --amber-soft: rgba(224, 164, 88, 0.12);
+  /* fighter identity in bars / radar / ranges: f1 sage, f2 muted rose */
+  --f1-color: #5dcaa5;
+  --f1-fill: rgba(93, 202, 165, 0.16);
+  --f2-color: #d9788a;
+  --f2-fill: rgba(217, 120, 138, 0.16);
+  --font-mono:
+    "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas,
+    "Courier New", monospace;
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: "Courier New", ui-monospace, monospace;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 
-/* glow utility for matrix headings */
+/* data/numeral styling — apply wherever a value should read as telemetry */
+.mono-data {
+  font-family: var(--font-mono);
+}
+
+/* formerly a neon text-shadow; the redesign retires glow site-wide */
 .matrix-glow {
   color: var(--matrix-green);
-  text-shadow: 0 0 14px rgba(0, 255, 102, 0.55);
+}
+
+/* scrollable rows (navbar tabs on phones) that shouldn't show a scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

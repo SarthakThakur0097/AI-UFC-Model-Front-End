@@ -105,7 +105,7 @@ export default function FighterRating({
         style={{
           textAlign: "center",
           fontSize: 12,
-          color: "#5f8f73",
+          color: "var(--text-secondary)",
           padding: "8px 0",
         }}
       >

@@ -226,7 +226,7 @@ export default function FightRadar({
             letterSpacing: "0.5px",
             padding: "5px 10px",
             cursor: "pointer",
-            fontFamily: "'Courier New', monospace",
+            fontFamily: "var(--font-mono)",
             textTransform: "uppercase",
             border: "1px solid var(--border)",
             borderLeft: i === 0 ? "1px solid var(--border)" : "none",
@@ -237,7 +237,7 @@ export default function FightRadar({
                   ? "0 5px 5px 0"
                   : "0",
             background:
-              mode === opt.val ? "rgba(0,255,102,0.15)" : "transparent",
+              mode === opt.val ? "var(--accent-soft-2)" : "transparent",
             color:
               mode === opt.val
                 ? "var(--matrix-green)"
@@ -258,7 +258,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 12,
-            color: "#5f8f73",
+            color: "var(--text-secondary)",
             padding: "20px 0",
           }}
         >
@@ -275,7 +275,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 12,
-            color: "#5f8f73",
+            color: "var(--text-secondary)",
             padding: "20px 0",
           }}
         >
@@ -295,7 +295,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 12,
-            color: "#5f8f73",
+            color: "var(--text-secondary)",
             padding: "20px 0",
           }}
         >
@@ -342,7 +342,7 @@ export default function FightRadar({
         y1={cy}
         x2={x.toFixed(1)}
         y2={y.toFixed(1)}
-        stroke="rgba(0,255,102,0.10)"
+        stroke="rgba(93,202,165,0.12)"
       />,
     );
     // label sits at the rotated angle (orbits) but text itself stays upright
@@ -364,8 +364,8 @@ export default function FightRadar({
           y={(ly + j * 9 - (lines.length - 1) * 4).toFixed(1)}
           textAnchor={anchor}
           fontSize="9"
-          fill="#5f8f73"
-          fontFamily="'Courier New', monospace"
+          fill="#7a8580"
+          fontFamily="'JetBrains Mono', ui-monospace, monospace"
         >
           {ln}
         </text>,
@@ -393,7 +393,7 @@ export default function FightRadar({
               width: 10,
               height: 10,
               borderRadius: "50%",
-              background: "#ff3b5c",
+              background: "var(--f1-color)",
               display: "inline-block",
             }}
           />
@@ -405,7 +405,7 @@ export default function FightRadar({
               width: 10,
               height: 10,
               borderRadius: "50%",
-              background: "#39c0ff",
+              background: "var(--f2-color)",
               display: "inline-block",
             }}
           />
@@ -435,20 +435,20 @@ export default function FightRadar({
               key={`r${f}`}
               d={ringPath(f)}
               fill="none"
-              stroke="rgba(0,255,102,0.10)"
+              stroke="rgba(93,202,165,0.12)"
             />
           ))}
           {spokes}
+          {/* style, not attributes: CSS vars don't resolve in SVG
+              presentation attributes */}
           <path
             d={polygon(valsB, R, cx, cy, n)}
-            fill="#39c0ff22"
-            stroke="#39c0ff"
+            style={{ fill: "var(--f2-fill)", stroke: "var(--f2-color)" }}
             strokeWidth="2"
           />
           <path
             d={polygon(valsA, R, cx, cy, n)}
-            fill="#ff3b5c22"
-            stroke="#ff3b5c"
+            style={{ fill: "var(--f1-fill)", stroke: "var(--f1-color)" }}
             strokeWidth="2"
           />
         </g>
@@ -460,7 +460,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 10,
-            color: "#3a5c47",
+            color: "var(--text-muted)",
             marginTop: 6,
           }}
         >
@@ -472,7 +472,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 10,
-            color: "#3a5c47",
+            color: "var(--text-muted)",
             marginTop: 6,
           }}
         >
@@ -484,7 +484,7 @@ export default function FightRadar({
           style={{
             textAlign: "center",
             fontSize: 10,
-            color: "#3a5c47",
+            color: "var(--text-muted)",
             marginTop: 6,
           }}
         >

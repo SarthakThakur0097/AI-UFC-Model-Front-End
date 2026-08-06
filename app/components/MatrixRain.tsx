@@ -84,17 +84,19 @@ export default function MatrixRain() {
       if (t - last < 70) return; // throttle; the trail does the rest
       last = t;
 
-      ctx.fillStyle = "rgba(0,6,0,0.09)";
+      // trail fade accumulates to the page background (--bg-primary #080b09)
+      ctx.fillStyle = "rgba(8,11,9,0.09)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.font = `${fontSize}px "Courier New", ui-monospace, monospace`;
+      ctx.font = `${fontSize}px "JetBrains Mono", ui-monospace, monospace`;
       ctx.textBaseline = "top";
 
       for (let i = 0; i < drops.length; i++) {
         const y = drops[i] * rowHeight;
         if (y > 0) {
           // Occasional brighter cell gives the columns some depth instead of
-          // a flat wall of one green.
-          ctx.fillStyle = Math.random() < 0.12 ? "#b9ffd6" : "#00ff66";
+          // a flat wall of one green. Sage palette — literals, since canvas
+          // can't resolve CSS vars (keep in sync with globals.css).
+          ctx.fillStyle = Math.random() < 0.12 ? "#d9f3ea" : "#5dcaa5";
           ctx.fillText(token(), i * colWidth + 6, y);
         }
         if (y > canvas.height && Math.random() > 0.972) drops[i] = 0;

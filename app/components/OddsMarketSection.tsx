@@ -175,7 +175,7 @@ export default function OddsMarketSection({
           <span
             className="text-xs px-1.5 rounded"
             style={{
-              background: "rgba(0,255,102,0.10)",
+              background: "rgba(93,202,165,0.10)",
               color: "var(--matrix-green)",
             }}
           >

@@ -41,7 +41,7 @@ export default function EndOfCardEmailCapture({ source }: EndOfCardEmailCaptureP
       <div
         style={{
           background: "var(--bg-detail)",
-          border: "1px solid var(--matrix-green)",
+          border: "1px solid var(--border-accent)",
         }}
         className="mx-4 mb-4 rounded-lg px-5 py-4 text-center"
       >
@@ -89,8 +89,8 @@ export default function EndOfCardEmailCapture({ source }: EndOfCardEmailCaptureP
           onClick={handleSubmit}
           disabled={status === "loading"}
           style={{
-            background: "rgba(0,255,102,0.10)",
-            border: "1px solid var(--matrix-green)",
+            background: "var(--accent-soft)",
+            border: "1px solid var(--border-accent)",
             color: "var(--matrix-green)",
           }}
           className="text-xs px-4 py-2 rounded whitespace-nowrap disabled:opacity-50"
@@ -100,7 +100,7 @@ export default function EndOfCardEmailCapture({ source }: EndOfCardEmailCaptureP
       </div>
 
       {status === "error" && (
-        <p className="text-xs mt-2" style={{ color: "#ff3b5c" }}>
+        <p className="text-xs mt-2" style={{ color: "var(--matrix-red)" }}>
           Enter a valid email.
         </p>
       )}

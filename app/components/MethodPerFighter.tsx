@@ -88,7 +88,7 @@ function FighterColumn({
             <div
               style={{
                 height: 5,
-                background: "rgba(0,255,102,0.10)",
+                background: "var(--bg-inset)",
                 borderRadius: 3,
                 overflow: "hidden",
               }}
@@ -100,7 +100,6 @@ function FighterColumn({
                   background: isHigher
                     ? "var(--matrix-green)"
                     : "var(--matrix-green-dim)",
-                  boxShadow: isHigher ? "0 0 6px var(--matrix-green)" : "none",
                   borderRadius: 3,
                 }}
               />
@@ -162,14 +161,14 @@ export default function MethodPerFighter({
 
   if (loading)
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "16px 0" }}>
+      <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", padding: "16px 0" }}>
         Loading method breakdown…
       </p>
     );
 
   if (failed || !data)
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "16px 0" }}>
+      <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", padding: "16px 0" }}>
         Method breakdown unavailable
       </p>
     );

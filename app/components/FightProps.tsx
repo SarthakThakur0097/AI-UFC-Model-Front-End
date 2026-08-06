@@ -17,9 +17,21 @@ import {
  * find. The fetch is still lazy: this component only mounts when the fight's
  * detail panel is open, so browsing the card costs nothing.
  */
+/** Actual scraped stats for one fighter — past cards only. Null = scrape gap. */
+export type ActualStats = {
+  sigStrikes: number | null;
+  takedowns: number | null;
+};
+
 type FightPropsProps = {
   f1: string;
   f2: string;
+  /**
+   * When set (past cards), the projections render with "actual" overlays:
+   * a tick on each strike-range bar and a landed count beside the takedown
+   * chips, so projection and reality sit in the same picture.
+   */
+  actuals?: { f1?: ActualStats | null; f2?: ActualStats | null } | null;
 };
 
 const label = { fontSize: 11, color: "var(--text-secondary)" } as const;
@@ -36,14 +48,13 @@ function DurationBar({ name, p }: { name: string; p: number }) {
       </div>
       <div
         className="w-full rounded-full overflow-hidden"
-        style={{ height: 5, background: "rgba(0,255,102,0.10)" }}
+        style={{ height: 5, background: "var(--bg-inset)" }}
       >
         <div
           className="h-full rounded-full"
           style={{
             width: `${Math.min(100, Math.max(0, p * 100))}%`,
             background: "var(--matrix-green)",
-            boxShadow: "0 0 6px var(--matrix-green)",
           }}
         />
       </div>
@@ -56,7 +67,15 @@ function DurationBar({ name, p }: { name: string; p: number }) {
  * A bar rather than a number because the spread is the point — a wide range is
  * the model saying it doesn't know.
  */
-function StrikeRange({ name, s }: { name: string; s: FighterProps["strikes"] }) {
+function StrikeRange({
+  name,
+  s,
+  actual,
+}: {
+  name: string;
+  s: FighterProps["strikes"];
+  actual?: number | null;
+}) {
   const markers: { key: keyof typeof s; strong: boolean }[] = [
     { key: "q25", strong: false },
     { key: "q50", strong: true },
@@ -70,6 +89,12 @@ function StrikeRange({ name, s }: { name: string; s: FighterProps["strikes"] }) 
         </span>
         <span className="text-xs font-bold shrink-0" style={{ color: "var(--text-primary)" }}>
           {Math.round(s.q50)} median
+          {actual != null && (
+            <span style={{ color: "var(--matrix-green)" }}>
+              {" "}
+              · {actual} actual
+            </span>
+          )}
         </span>
       </div>
       <div style={{ position: "relative", height: 18 }}>
@@ -81,7 +106,7 @@ function StrikeRange({ name, s }: { name: string; s: FighterProps["strikes"] }) 
             right: 0,
             height: 5,
             borderRadius: 3,
-            background: "rgba(0,255,102,0.10)",
+            background: "var(--bg-inset)",
           }}
         />
         {/* q25–q75 interquartile band */}
@@ -108,10 +133,25 @@ function StrikeRange({ name, s }: { name: string; s: FighterProps["strikes"] }) 
               height: m.strong ? 11 : 7,
               borderRadius: m.strong ? 4 : 2,
               background: m.strong ? "var(--matrix-green)" : "var(--text-muted)",
-              boxShadow: m.strong ? "0 0 6px var(--matrix-green)" : "none",
             }}
           />
         ))}
+        {/* what actually happened, on the same scale as the projection.
+            positionWithin clamps, so an out-of-range actual pins to the edge */}
+        {actual != null && (
+          <div
+            title={`actual ${actual}`}
+            style={{
+              position: "absolute",
+              top: 1,
+              left: `calc(${positionWithin(actual, s.q10, s.q90)}% - 1px)`,
+              width: 2,
+              height: 15,
+              borderRadius: 1,
+              background: "var(--text-primary)",
+            }}
+          />
+        )}
       </div>
       <div className="flex justify-between" style={{ fontSize: 10, color: "var(--text-muted)" }}>
         <span>{Math.round(s.q10)}</span>
@@ -121,14 +161,22 @@ function StrikeRange({ name, s }: { name: string; s: FighterProps["strikes"] }) 
   );
 }
 
-function TakedownChips({ name, t }: { name: string; t: FighterProps["takedowns"] }) {
+function TakedownChips({
+  name,
+  t,
+  actual,
+}: {
+  name: string;
+  t: FighterProps["takedowns"];
+  actual?: number | null;
+}) {
   const chips = [
     { k: "1+ TD", p: t.p_ge1 },
     { k: "2+", p: t.p_ge2 },
     { k: "3+", p: t.p_ge3 },
   ];
   return (
-    <div className="flex items-center gap-2 mb-2">
+    <div className="flex items-center flex-wrap gap-2 mb-2">
       <span className="truncate" style={{ ...label, width: 96 }} title={name}>
         {name}
       </span>
@@ -140,7 +188,7 @@ function TakedownChips({ name, t }: { name: string; t: FighterProps["takedowns"]
             key={c.k}
             className="text-xs px-2 py-0.5 rounded"
             style={{
-              background: strong ? "rgba(0,255,102,0.12)" : "transparent",
+              background: strong ? "var(--accent-soft-2)" : "transparent",
               border: `1px solid ${strong ? "var(--matrix-green)" : "var(--border)"}`,
               color: strong ? "var(--matrix-green)" : "var(--text-secondary)",
             }}
@@ -149,11 +197,19 @@ function TakedownChips({ name, t }: { name: string; t: FighterProps["takedowns"]
           </span>
         );
       })}
+      {actual != null && (
+        <span
+          className="text-xs font-medium"
+          style={{ color: "var(--matrix-green)" }}
+        >
+          {actual} landed
+        </span>
+      )}
     </div>
   );
 }
 
-export default function FightProps({ f1, f2 }: FightPropsProps) {
+export default function FightProps({ f1, f2, actuals }: FightPropsProps) {
   const [data, setData] = useState<FightPropsData | null>(null);
   const [failure, setFailure] = useState<PropsFailure | null>(null);
   const [fetched, setFetched] = useState(false);
@@ -213,12 +269,28 @@ export default function FightProps({ f1, f2 }: FightPropsProps) {
       <p style={{ ...label, margin: "14px 0 8px" }}>
         Projected significant strikes landed
       </p>
-      <StrikeRange name={n1} s={stats.f1.strikes} />
-      <StrikeRange name={n2} s={stats.f2.strikes} />
+      <StrikeRange
+        name={n1}
+        s={stats.f1.strikes}
+        actual={actuals?.f1?.sigStrikes}
+      />
+      <StrikeRange
+        name={n2}
+        s={stats.f2.strikes}
+        actual={actuals?.f2?.sigStrikes}
+      />
 
       <p style={{ ...label, margin: "14px 0 8px" }}>Takedowns landed</p>
-      <TakedownChips name={n1} t={stats.f1.takedowns} />
-      <TakedownChips name={n2} t={stats.f2.takedowns} />
+      <TakedownChips
+        name={n1}
+        t={stats.f1.takedowns}
+        actual={actuals?.f1?.takedowns}
+      />
+      <TakedownChips
+        name={n2}
+        t={stats.f2.takedowns}
+        actual={actuals?.f2?.takedowns}
+      />
 
     </div>
   );

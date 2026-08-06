@@ -58,7 +58,7 @@ export default function OddsFightRow({
         style={{
           borderBottom: !isLast || expanded ? "1px solid var(--border)" : "none",
         }}
-        className="px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-[rgba(0,255,102,0.04)] transition-colors"
+        className="px-4 py-3 flex items-center gap-4 cursor-pointer hover:bg-[rgba(93,202,165,0.05)] transition-colors"
       >
         <span
           className="text-xs font-medium shrink-0 text-center"

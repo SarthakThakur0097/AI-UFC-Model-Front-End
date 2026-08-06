@@ -92,14 +92,14 @@ export default function CommonOpponents({
 
   if (loading)
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "12px 0" }}>
+      <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", padding: "12px 0" }}>
         Loading common opponents…
       </p>
     );
 
   if (failed)
     return (
-      <p style={{ textAlign: "center", fontSize: 12, color: "#5f8f73", padding: "12px 0" }}>
+      <p style={{ textAlign: "center", fontSize: 12, color: "var(--text-secondary)", padding: "12px 0" }}>
         Common opponents unavailable
       </p>
     );

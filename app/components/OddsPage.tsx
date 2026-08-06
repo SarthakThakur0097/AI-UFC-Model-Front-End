@@ -305,7 +305,7 @@ export default function OddsPage({ groups }: { groups: OddsEventGroup[] }) {
                 <span
                   className="text-xs px-2.5 py-1 rounded-md font-medium uppercase tracking-wider shrink-0"
                   style={{
-                    background: "rgba(0,255,102,0.10)",
+                    background: "rgba(93,202,165,0.10)",
                     color: "var(--matrix-green)",
                     border: "1px solid var(--border)",
                   }}
@@ -430,7 +430,7 @@ export default function OddsPage({ groups }: { groups: OddsEventGroup[] }) {
               onClick={handleImport}
               className="text-xs px-3 py-1.5 rounded"
               style={{
-                background: "rgba(0,255,102,0.10)",
+                background: "rgba(93,202,165,0.10)",
                 border: "1px solid var(--matrix-green)",
                 color: "var(--matrix-green)",
               }}
@@ -466,7 +466,7 @@ export default function OddsPage({ groups }: { groups: OddsEventGroup[] }) {
                 onClick={() => copy(preview, "Prompt")}
                 className="text-xs px-3 py-1 rounded"
                 style={{
-                  background: "rgba(0,255,102,0.10)",
+                  background: "rgba(93,202,165,0.10)",
                   border: "1px solid var(--matrix-green)",
                   color: "var(--matrix-green)",
                 }}
@@ -540,7 +540,7 @@ export default function OddsPage({ groups }: { groups: OddsEventGroup[] }) {
           disabled={totalEntered === 0 || generating}
           className="text-xs px-4 py-1.5 rounded font-medium disabled:opacity-40"
           style={{
-            background: "rgba(0,255,102,0.10)",
+            background: "rgba(93,202,165,0.10)",
             border: "1px solid var(--matrix-green)",
             color: "var(--matrix-green)",
           }}

@@ -146,7 +146,12 @@ export default async function Home({
             }}
           >
             <div>
-              <p className="text-xs font-medium text-white">2026 Accuracy</p>
+              <p
+                className="text-xs font-medium"
+                style={{ color: "var(--text-primary)" }}
+              >
+                2026 Accuracy
+              </p>
               <p
                 className="text-xs mt-0.5"
                 style={{ color: "var(--text-secondary)" }}
@@ -156,7 +161,10 @@ export default async function Home({
             </div>
             <span
               className="text-lg font-semibold"
-              style={{ color: "#4ade80" }}
+              style={{
+                color: "var(--matrix-green)",
+                fontFamily: "var(--font-mono)",
+              }}
             >
               {accuracy}%
             </span>
@@ -228,6 +236,11 @@ export default async function Home({
   const eventGroups = groupByEvent(fightsWithPredictions);
 
   const accuracy = await getAccuracy();
+  // Model-minus-Vegas gap in percentage points, for the comparison block.
+  const vegasDelta =
+    accuracy?.vegas?.accuracy != null
+      ? accuracy.accuracy - accuracy.vegas.accuracy
+      : null;
 
   return (
     <main className="min-h-screen" style={{ position: "relative", zIndex: 1 }}>
@@ -235,60 +248,107 @@ export default async function Home({
       <Navbar activeTab="upcoming" />
       <div className="max-w-2xl mx-auto px-4 pt-6 pb-12">
         <div className="mb-6">
-          <div className="flex items-baseline justify-between mb-1">
-            <h1 className="text-xl font-semibold tracking-tight text-white">
+          <div className="flex items-baseline justify-between mb-1 flex-wrap gap-y-2">
+            <h1
+              className="text-xl font-semibold tracking-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
               Upcoming Events
             </h1>
-            <div className="flex items-center gap-2">
-              {accuracy && (
-                <div
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                  style={{
-                    background: "rgba(74, 222, 128, 0.08)",
-                    border: "1px solid rgba(74, 222, 128, 0.2)",
-                  }}
-                >
-                  <span
-                    className="inline-block w-1.5 h-1.5 rounded-full"
-                    style={{ background: "#4ade80" }}
-                  />
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: "#4ade80" }}
+            {/* Model vs Vegas as ONE comparison block — the two facts are only
+                meaningful together, so they share a card with the gap called
+                out explicitly. */}
+            {accuracy && (
+              <div
+                className="inline-flex items-center gap-5 rounded-[10px] px-[18px] py-3"
+                style={{ border: "1px solid var(--bg-inset)" }}
+              >
+                <div>
+                  <p
+                    className="text-[10px] mb-1"
+                    style={{
+                      color: "var(--text-muted)",
+                      letterSpacing: "1px",
+                      fontFamily: "var(--font-mono)",
+                    }}
                   >
-                    {accuracy.accuracy}% accuracy
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
+                    MODEL · LAST {accuracy.total}
+                  </p>
+                  <p
+                    className="text-[22px] font-bold leading-none"
+                    style={{ color: "var(--matrix-green)" }}
                   >
-                    · last {accuracy.total}
-                  </span>
+                    {accuracy.accuracy}%
+                  </p>
                 </div>
-              )}
-              {accuracy?.vegas && accuracy.vegas.accuracy !== null && (
-                <div
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-                  style={{
-                    background: "rgba(148, 163, 184, 0.08)",
-                    border: "1px solid rgba(148, 163, 184, 0.2)",
-                  }}
-                >
-                  <span
-                    className="text-xs font-medium"
-                    style={{ color: "var(--text-secondary)" }}
-                  >
-                    vs Vegas: {accuracy.vegas.accuracy}%
-                  </span>
-                  <span
-                    className="text-xs"
-                    style={{ color: "var(--text-muted)" }}
-                  >
-                    · {accuracy.vegas.window} baseline
-                  </span>
-                </div>
-              )}
-            </div>
+                {accuracy.vegas && accuracy.vegas.accuracy !== null && (
+                  <>
+                    <div
+                      style={{
+                        width: 1,
+                        height: 34,
+                        background: "var(--bg-inset)",
+                      }}
+                    />
+                    <div>
+                      <p
+                        className="text-[10px] mb-1"
+                        style={{
+                          color: "var(--text-muted)",
+                          letterSpacing: "1px",
+                          fontFamily: "var(--font-mono)",
+                        }}
+                      >
+                        VEGAS · {accuracy.vegas.window.toUpperCase()}
+                      </p>
+                      <p
+                        className="text-[22px] font-bold leading-none"
+                        style={{ color: "var(--text-data)" }}
+                      >
+                        {accuracy.vegas.accuracy}%
+                      </p>
+                    </div>
+                    {vegasDelta !== null && (
+                      <>
+                        <div
+                          style={{
+                            width: 1,
+                            height: 34,
+                            background: "var(--bg-inset)",
+                          }}
+                        />
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              fontSize: 14,
+                              color:
+                                vegasDelta >= 0
+                                  ? "var(--matrix-green)"
+                                  : "var(--matrix-red)",
+                            }}
+                          >
+                            {vegasDelta >= 0 ? "↗" : "↘"}
+                          </span>
+                          <span
+                            className="text-[13px] font-semibold"
+                            style={{
+                              color:
+                                vegasDelta >= 0
+                                  ? "var(--matrix-green)"
+                                  : "var(--matrix-red)",
+                            }}
+                          >
+                            {vegasDelta >= 0 ? "+" : ""}
+                            {vegasDelta.toFixed(1)}pp
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             AI predictions for all bouts
