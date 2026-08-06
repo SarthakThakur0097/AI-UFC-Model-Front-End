@@ -180,6 +180,8 @@ export default async function Home({
                   actual_winner: f.actual_winner,
                   method_pred: f.method_pred,
                   method_per_fighter: f.method_per_fighter,
+                  actuals: f.actuals ?? null,
+                  props_settled: f.props_settled ?? null,
                 }))}
               />
             ))}
@@ -208,6 +210,13 @@ export default async function Home({
       conf: hasPred ? (fight.conf as number) : 0,
       f1Prob: hasPred ? (fight.f1Prob as number) : 50,
       f2Prob: hasPred ? (fight.f2Prob as number) : 50,
+      // Null for most fights (no line scraped). Passed through as-is so the
+      // card can lead with the blend when it exists and fall back silently
+      // when it doesn't.
+      marketF1: fight.marketF1 ?? null,
+      marketF2: fight.marketF2 ?? null,
+      blendF1: fight.blendF1 ?? null,
+      blendF2: fight.blendF2 ?? null,
       error: !hasPred,
       method: fight.method ?? { Decision: 0, "KO/TKO": 0, Submission: 0 },
       methodPerFighter: fight.methodPerFighter ?? null,
