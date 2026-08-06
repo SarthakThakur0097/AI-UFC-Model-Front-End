@@ -272,11 +272,10 @@ function radarLine(
     if (typeof v === 'number') {
       parts.push(`${label} ${round1(v)}`)
     } else if (typeof v.pct === 'number') {
-      parts.push(
-        typeof v.z === 'number'
-          ? `${v.label ?? label} ${round1(v.pct)} (z ${v.z > 0 ? '+' : ''}${round1(v.z)})`
-          : `${v.label ?? label} ${round1(v.pct)}`
-      )
+      // Fixed one decimal and an explicit sign, so the column reads uniformly:
+      // "z +1.0" not "z +1", "z +0.0" not a bare "z 0".
+      const z = typeof v.z === 'number' ? ` (z ${v.z >= 0 ? '+' : '-'}${Math.abs(round1(v.z)).toFixed(1)})` : ''
+      parts.push(`${v.label ?? label} ${round1(v.pct)}${z}`)
     }
   }
   return parts.join(' | ')
@@ -325,8 +324,13 @@ function renderMarket(
   if (presentOdds.length === 0) return []
 
   const complete = spec.isComplete(entered)
+  // De-vig only when the legs are mutually exclusive AND all present. On the
+  // double-chance markets each leg covers two of three methods, so the set sums
+  // to ~200% by construction — normalising it yields numbers that look like
+  // fair probabilities but are roughly half the truth.
+  const canDevig = spec.devigSafe && complete
   const implied = presentOdds.map((f) => impliedProbability(entered[f.key as string]))
-  const fair = complete ? devig(implied) : []
+  const fair = canDevig ? devig(implied) : []
 
   // Header: title, the posted line if this market has one, and completeness.
   let header = `  ${spec.promptTitle}`
@@ -334,16 +338,24 @@ function renderMarket(
     const lv = entered[lineField.key as string]
     header += typeof lv === 'number' ? `  line ${lv}` : `  line NOT ENTERED`
   }
-  header += complete
-    ? `  [complete, overround ${(overround(implied) * 100).toFixed(1)}%]`
-    : `  [partial — ${presentOdds.length} of ${oddsFields.length} legs entered, no-vig not computable]`
+  if (!spec.devigSafe) {
+    header += `  [overlapping outcomes — no-vig and overround are not meaningful here]`
+  } else if (complete) {
+    header += `  [complete, overround ${(overround(implied) * 100).toFixed(1)}%]`
+  } else {
+    header += `  [partial — ${presentOdds.length} of ${oddsFields.length} legs entered, no-vig not computable]`
+  }
+
+  // Long promptLabels (the cross-fighter double chance) overflow a fixed column
+  // and would run straight into the price with no separator.
+  const labelWidth = Math.max(44, ...presentOdds.map((f) => f.promptLabel(m.f1, m.f2).length + 2))
 
   const rows = presentOdds.map((f, i) => {
     const price = entered[f.key as string]
-    const label = pad(f.promptLabel(m.f1, m.f2), 44)
+    const label = pad(f.promptLabel(m.f1, m.f2), labelWidth)
     const priceCol = pad(formatAmericanOdds(price), 7)
     let row = `    ${label}${priceCol}implied ${pad(pct(implied[i]), 8)}`
-    if (complete) row += `no-vig ${pad(pct(fair[i]), 8)}`
+    if (canDevig) row += `no-vig ${pad(pct(fair[i]), 8)}`
     const mp = modelProbFor(spec.id, f.key as string, m)
     if (mp !== null) row += `model ${pct(mp)}`
     return row.replace(/\s+$/, '')
@@ -411,10 +423,12 @@ function renderFight(index: number, fight: PromptFightInput): string[] {
   const g1 = prof?.f1?.glicko
   const g2 = prof?.f2?.glicko
   if (g1 || g2) {
+    // "percentile 98.1" rather than "98.1th percentile" — an ordinal suffix on a
+    // decimal is always wrong ("93th", "98.1st").
     const line = (name: string, g?: { rating: number; percentile: number | null } | null) =>
       g
         ? `    ${pad(name, 22)}${pad(String(round1(g.rating)), 8)}${
-            typeof g.percentile === 'number' ? `${round1(g.percentile)}th percentile` : 'percentile unknown'
+            typeof g.percentile === 'number' ? `percentile ${round1(g.percentile)}` : 'percentile unknown'
           }`
         : `    ${pad(name, 22)}no rating available`
     out.push('  FIGHTER RATING (Glicko)', line(m.f1, g1), line(m.f2, g2))
@@ -464,9 +478,13 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
     'DATA CAVEATS — read before reasoning',
     '- These notes describe how THIS payload was assembled. Where they touch on betting',
     '  policy, the system prompt above wins.',
-    '- The method percentages below were computed for ONE fighter order only. The system',
-    '  prompt asks you to average the method output over both orders — that is NOT possible',
-    '  with this payload, so treat method probabilities as carrying that extra uncertainty.',
+    '- On the system prompt\'s both-fighter-orders warning: it applies to only ONE of the two',
+    '  method markets here. The per-fighter numbers come from a 6-class corner-by-method model',
+    '  that the backend already mirror-averages, so they are order-symmetric as printed and',
+    '  need no further averaging. The fight-level numbers come from a separate 3-class model',
+    '  that is NOT order-independent, and only one order is available in this payload — so the',
+    '  extra uncertainty applies to EXACT METHOD and to anything derived from it (including the',
+    '  goes-the-distance proxy), not to METHOD OF VICTORY (PER FIGHTER).',
     `- Odds were typed manually at ${input.generatedAt} and may be stale. Book: ${book}.`,
     '- A missing market or leg means "I did not enter it", NOT "it is unavailable" and NOT',
     '  "the price is bad". Never infer anything from absence.',
@@ -487,6 +505,12 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
     '- FIGHT GOES THE DISTANCE overlaps both: Yes is the same event as EXACT METHOD',
     '  Decision, and No is KO/TKO + Submission. Price whichever market is best; do not',
     '  treat agreement between them as independent confirmation.',
+    '- The DOUBLE CHANCE markets are shown with implied probability only, no no-vig.',
+    '  Their legs overlap (each covers two of three methods), so the set sums to ~200%',
+    '  by construction rather than because of vig, and normalising it would understate',
+    '  every leg by roughly half. Compare model vs raw implied there, and remember the',
+    '  raw implied still includes the book\'s margin — so the bar for a real edge is',
+    '  higher than the printed gap suggests.',
     '- FIGHTER RATING is Glicko: a rating number plus a percentile. NOTE the two',
     '  percentiles in this prompt have DIFFERENT denominators — the Glicko percentile is',
     '  against every fighter in the database regardless of weight class, while every',
@@ -507,6 +531,13 @@ export function buildOddsPrompt(input: OddsPromptInput): string {
     '                 the numbers were padded against weak opposition.',
     '  Because they share inputs, an axis can repeat across modes (e.g. Striking Defense',
     '  appears in both Defense and Raw). Agreement between modes is not extra evidence.',
+    '- A radar value of exactly 0 usually means NO DATA, not "bottom of the division".',
+    '  The backend returns null for an axis with no recorded attempts, which the Adjusted',
+    '  mode omits entirely, but Raw and Discipline report the same axis as 0. So a fighter',
+    '  showing "Wrestling 0 | BJJ 0" and "TD / 15 0" alongside an Adjusted mode that has no',
+    '  takedown or submission axes at all has simply never attempted those things on record',
+    '  — he is not the worst wrestler in the division. Read an isolated 0 as unknown, and',
+    '  do not let it drag a fighter assessment down.',
     '- Radar percentiles are DESCRIPTIVE inputs, not model outputs. Use them to explain',
     '  and sanity-check an edge the win/method models produced, and to reason about',
     '  markets those models do not cover. Do not invent a probability from them.',

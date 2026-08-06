@@ -48,6 +48,102 @@ export default function MethodologyPage() {
 
       <section>
         <h2 className="text-sm font-bold mb-2" style={sectionTitle}>
+          The market blend
+        </h2>
+        <p className="text-sm leading-relaxed mb-2" style={body}>
+          Where a betting line exists, the headline win probability you see is
+          not the model on its own. It is a <span style={sectionTitle}>blend</span>{" "}
+          of the model and the de-vigged betting market, and the model is the
+          junior partner.
+        </p>
+        <p className="text-sm leading-relaxed mb-2" style={body}>
+          The reason is uncomfortable but well measured: across 1,488 fights
+          with closing odds, the market predicted winners more accurately than
+          the model did (69.6% vs 64.5%). Worse, filtering to the fights where
+          the model most strongly disagreed with the market made results
+          steadily <span style={sectionTitle}>worse</span>, not better. A
+          confident contrarian model call is, historically, a warning sign
+          rather than an opportunity.
+        </p>
+        <p className="text-sm leading-relaxed mb-2" style={body}>
+          So rather than pick a side, we let the data set the weights. A
+          logistic blend was fit walk-forward — each year&apos;s weights learned
+          only from earlier fights — and it lands in the same place every time:
+          roughly <span style={sectionTitle}>3–4x more weight on the market
+          than on the model</span>.
+        </p>
+        <ul
+          className="text-sm leading-relaxed flex flex-col gap-1.5 pl-4 mb-2"
+          style={body}
+        >
+          <li>Model alone — log-loss 0.6264</li>
+          <li>Market alone — log-loss 0.5822</li>
+          <li>
+            <span style={sectionTitle}>The blend — 0.5742</span> (lower is
+            better)
+          </li>
+        </ul>
+        <p className="text-sm leading-relaxed mb-2" style={body}>
+          The blend beats the market by itself. That is the honest summary of
+          what this model is worth: it knows something the closing line
+          doesn&apos;t — just never enough to overrule it, only enough to nudge
+          it. When the two disagree sharply we flag it rather than hide it,
+          because those are the fights where the number is least certain.
+        </p>
+        <p className="text-sm leading-relaxed" style={body}>
+          Not every fight has a line scraped. When it doesn&apos;t, you see the
+          pure model number with no blend line beneath it. The model-only figure
+          is also what our published accuracy is graded on — we never grade
+          ourselves on the market&apos;s work. Market numbers shown here are an
+          analytical reference, not a price you can bet.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-bold mb-2" style={sectionTitle}>
+          Props — duration, strikes and takedowns
+        </h2>
+        <p className="text-sm leading-relaxed mb-2" style={body}>
+          Separate models, marked{" "}
+          <span style={sectionTitle}>EXPERIMENTAL</span> on the card because
+          they are newer and less proven than the win and method models:
+        </p>
+        <ul
+          className="text-sm leading-relaxed flex flex-col gap-1.5 pl-4 mb-2"
+          style={body}
+        >
+          <li>
+            <span style={sectionTitle}>Fight duration</span> — the chance a
+            fight ends before the halfway point of round 2 or round 3, or
+            reaches the judges. These use the same half-round convention
+            sportsbooks settle on.
+          </li>
+          <li>
+            <span style={sectionTitle}>Significant strikes</span> — a projected
+            range per fighter rather than a single number. The bar spans the
+            10th to 90th percentile, the shaded middle is the interquartile
+            range, and the dot is the median. A wide bar means the model is
+            genuinely unsure.
+          </li>
+          <li>
+            <span style={sectionTitle}>Takedowns</span> — the chance of landing
+            at least one, two or three. These discriminate better than anything
+            else in the system.
+          </li>
+        </ul>
+        <p className="text-sm leading-relaxed" style={body}>
+          Two honest caveats. The strike range is not conditional on the fight
+          going the distance — early finishes are inside the distribution, which
+          is why the low end can look implausibly low; a strike projection and a
+          fight-duration projection are largely the same forecast, not two
+          independent ones. And the upper end of the strike range is better
+          calibrated than the lower end. Fighters with too little UFC history
+          get no props at all rather than a guess.
+        </p>
+      </section>
+
+      <section>
+        <h2 className="text-sm font-bold mb-2" style={sectionTitle}>
           Performance Radar
         </h2>
         <p className="text-sm leading-relaxed mb-2" style={body}>

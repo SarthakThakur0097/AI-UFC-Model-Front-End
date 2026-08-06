@@ -83,6 +83,19 @@ export type UpcomingFight = {
   conf?: number
   f1Prob?: number
   f2Prob?: number
+  /**
+   * De-vigged betting-market consensus, 0-100. Analytical reference only, NOT a
+   * bookable price. Null whenever no line was scraped for the fight — which is
+   * the majority case, so every consumer must handle null.
+   */
+  marketF1?: number | null
+  marketF2?: number | null
+  /**
+   * Learned model+market blend, 0-100, weighted roughly 3.5:1 toward the market.
+   * Measured more accurate than either input, so this leads the UI when present.
+   */
+  blendF1?: number | null
+  blendF2?: number | null
   method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
   methodPerFighter?: MethodPerFighterData | null
   commonOpponents?: { common: any[]; count: number } | null
@@ -142,6 +155,8 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
       fights: {
         f1: string; f2: string; weight_class: string; position: number
         pick?: string; confidence?: number; f1_prob?: number; f2_prob?: number
+        market_f1?: number | null; market_f2?: number | null
+        blend_f1?: number | null; blend_f2?: number | null
         method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
         method_per_fighter?: MethodPerFighterData | null
         common_opponents?: { common: any[]; count: number } | null
@@ -168,6 +183,10 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
           conf: f.confidence,
           f1Prob: f.f1_prob,
           f2Prob: f.f2_prob,
+          marketF1: f.market_f1 ?? null,
+          marketF2: f.market_f2 ?? null,
+          blendF1: f.blend_f1 ?? null,
+          blendF2: f.blend_f2 ?? null,
           method: f.method,
           methodPerFighter: f.method_per_fighter ?? null,
           commonOpponents: f.common_opponents ?? null,

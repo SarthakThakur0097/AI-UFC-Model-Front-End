@@ -103,6 +103,17 @@ export type MarketSpec<M extends MarketId = MarketId> = {
    * probabilities, so the prompt refuses to do it unless this passes.
    */
   isComplete: (entered: Record<string, number>) => boolean
+  /**
+   * True only when the legs are mutually exclusive and collectively exhaustive.
+   * De-vig divides each leg by the sum of all legs, which is only a fair
+   * probability if exactly one leg can win.
+   *
+   * The double-chance markets are NOT: each leg covers two of three methods, so
+   * every method is counted twice and the set sums to ~200% by construction.
+   * Normalising that produces numbers that look like fair probabilities and are
+   * roughly half the true value — worse than showing nothing.
+   */
+  devigSafe: boolean
   /** f1/f2-swapped counterpart of a key, for feed orientation flips. */
   mirrorKey: (key: string) => string
   /** Value transform on mirror (only the handicap line needs one). */
@@ -216,6 +227,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     promptTitle: 'MONEYLINE',
     layout: 'pair',
     isComplete: allOddsLegsPresent(['f1', 'f2']),
+    devigSafe: true,
     mirrorKey: (k) => (k === 'f1' ? 'f2' : k === 'f2' ? 'f1' : k),
     fields: [
       {
@@ -241,6 +253,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'Enter the line the book posted (1.5, 2.5, 3.5, 4.5), then both prices.',
     layout: 'line2',
     isComplete: allOddsLegsPresent(['over', 'under']),
+    devigSafe: true,
     mirrorKey: (k) => k,
     fields: [
       {
@@ -273,6 +286,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'Line as posted for the first fighter. Market semantics unconfirmed — see notes.',
     layout: 'line2',
     isComplete: allOddsLegsPresent(['f1', 'f2']),
+    devigSafe: true,
     mirrorKey: (k) => (k === 'f1' ? 'f2' : k === 'f2' ? 'f1' : k),
     // Flipping which fighter is "first" negates the posted line.
     mirrorValue: (key, value) => {
@@ -311,6 +325,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'Who wins AND how, e.g. "Gamrot by KO/TKO".',
     layout: 'grid3x2',
     isComplete: allOddsLegsPresent(METHOD_KEYS),
+    devigSafe: true,
     mirrorKey: swapSlotPrefix,
     fields: method3Fields<'method'>(),
   },
@@ -320,6 +335,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     promptTitle: 'FIGHT GOES THE DISTANCE',
     layout: 'pair',
     isComplete: allOddsLegsPresent(['yes', 'no']),
+    devigSafe: true,
     mirrorKey: (k) => k,
     fields: [
       {
@@ -345,6 +361,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'One fighter, either of two methods.',
     layout: 'grid3x2',
     isComplete: allOddsLegsPresent(DC_KEYS),
+    devigSafe: false,
     mirrorKey: swapSlotPrefix,
     fields: doubleChanceFields<'methodDouble'>(),
   },
@@ -355,6 +372,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'Cross-fighter combinations, listed the way the book lists them.',
     layout: 'list',
     isComplete: allOddsLegsPresent(ALT_DC_KEYS),
+    devigSafe: false,
     // f1Ko_f2Sub -> f1Sub_f2Ko
     mirrorKey: (k) => {
       const m = /^f1([A-Za-z]+)_f2([A-Za-z]+)$/.exec(k)
@@ -369,6 +387,7 @@ export const MARKETS: readonly AnyMarketSpec[] = [
     hint: 'How the fight ends regardless of who wins. Not tied to a fighter.',
     layout: 'pair',
     isComplete: allOddsLegsPresent([...METHOD3]),
+    devigSafe: true,
     // Fight-level, so there is no f1/f2 slot to mirror.
     mirrorKey: (k) => k,
     fields: fightMethodFields(),

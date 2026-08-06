@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import FightRadar from "./FightRadar";
 import MethodPerFighter from "./MethodPerFighter";
 import CommonOpponents from "./CommonOpponents";
+import FightProps from "./FightProps";
 import FighterRating from "./FighterRating";
 import EndOfCardEmailCapture from "./EndOfCardEmailCapture";
 
@@ -18,6 +19,10 @@ type Fight = {
   conf: number;
   f1Prob: number;
   f2Prob: number;
+  marketF1?: number | null;
+  marketF2?: number | null;
+  blendF1?: number | null;
+  blendF2?: number | null;
   error?: boolean;
   method: {
     Decision: number;
@@ -89,6 +94,15 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
       {fights.map((fight, i) => {
         const hasPrediction = !fight.error && !!fight.pick;
         const isOpen = expanded === i;
+        // market_*/blend_* are null whenever no line was scraped — the common
+        // case — so everything below degrades to model-only silently.
+        const hasBlend =
+          typeof fight.blendF1 === "number" && typeof fight.blendF2 === "number";
+        const leadF1 = hasBlend ? (fight.blendF1 as number) : fight.f1Prob;
+        const leadF2 = hasBlend ? (fight.blendF2 as number) : fight.f2Prob;
+        const disagrees =
+          typeof fight.marketF1 === "number" &&
+          Math.abs(fight.f1Prob - fight.marketF1) >= 15;
 
         return (
           <div key={i}>
@@ -190,8 +204,11 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
               </span>
             </div>
 
-            {/* Detail Panel */}
-            {isOpen && hasPrediction && (
+            {/* Detail Panel. Opens even without a win prediction: rating,
+                radar, method, common opponents and props are all fetched
+                independently of it, and a fight can have props while the winner
+                model skipped it. Only the win-probability bar is gated. */}
+            {isOpen && (
               <div
                 style={{
                   background: "var(--bg-detail)",
@@ -209,38 +226,92 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                 <FighterRating f1={fight.f1} f2={fight.f2} />
 
                 <div style={{ height: 20 }} />
-                {/* Win Probability */}
+                {/* Win Probability. Suppressed without a prediction — f1Prob/
+                    f2Prob are substituted with a placeholder 50/50 upstream, so
+                    rendering the bar here would show a confident-looking
+                    coin-flip the model never produced. */}
                 <p
                   className="text-xs font-medium uppercase tracking-widest mb-3"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   Win Probability
                 </p>
-                <div
-                  className="flex rounded-md overflow-hidden mb-5"
-                  style={{ height: 30, border: "1px solid var(--border)" }}
-                >
-                  <div
-                    className="flex items-center px-2 text-xs font-bold"
-                    style={{
-                      width: `${fight.f1Prob}%`,
-                      background: "rgba(255,59,92,0.4)",
-                      color: "#ffd9e0",
-                    }}
+                {hasPrediction ? (
+                  <>
+                    {/* Lead with the learned blend when a market line exists —
+                        it is measured more accurate than either input. Falls
+                        back to model-only when market_* is null, which is the
+                        majority of fights. */}
+                    <div
+                      className="flex rounded-md overflow-hidden mb-2"
+                      style={{ height: 30, border: "1px solid var(--border)" }}
+                    >
+                      <div
+                        className="flex items-center px-2 text-xs font-bold"
+                        style={{
+                          width: `${leadF1}%`,
+                          background: "rgba(255,59,92,0.4)",
+                          color: "#ffd9e0",
+                        }}
+                      >
+                        {Math.round(leadF1)}%
+                      </div>
+                      <div
+                        className="flex items-center justify-end px-2 text-xs font-bold ml-auto"
+                        style={{
+                          width: `${leadF2}%`,
+                          background: "rgba(57,192,255,0.4)",
+                          color: "#d9f3ff",
+                        }}
+                      >
+                        {Math.round(leadF2)}%
+                      </div>
+                    </div>
+                    {hasBlend ? (
+                      <div className="mb-5">
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                          Model + market blend. Model alone:{" "}
+                          <span style={{ color: "var(--text-primary)" }}>
+                            {Math.round(fight.f1Prob)}% / {Math.round(fight.f2Prob)}%
+                          </span>
+                          {typeof fight.marketF1 === "number" && (
+                            <>
+                              {"  ·  Market: "}
+                              <span style={{ color: "var(--text-primary)" }}>
+                                {Math.round(fight.marketF1)}% /{" "}
+                                {Math.round(fight.marketF2 ?? 100 - fight.marketF1)}%
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        {disagrees && (
+                          <span
+                            className="inline-block text-xs px-1.5 py-0.5 rounded mt-1.5"
+                            style={{
+                              background: "rgba(255,59,92,0.12)",
+                              color: "var(--matrix-red)",
+                              border: "1px solid var(--border)",
+                            }}
+                            title="The model and the betting market differ by 15 points or more on this fight."
+                          >
+                            model and market disagree
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="mb-5" />
+                    )}
+                  </>
+                ) : (
+                  <p
+                    className="text-xs mb-5"
+                    style={{ color: "var(--text-muted)", lineHeight: 1.6 }}
                   >
-                    {fight.f1Prob}%
-                  </div>
-                  <div
-                    className="flex items-center justify-end px-2 text-xs font-bold ml-auto"
-                    style={{
-                      width: `${fight.f2Prob}%`,
-                      background: "rgba(57,192,255,0.4)",
-                      color: "#d9f3ff",
-                    }}
-                  >
-                    {fight.f2Prob}%
-                  </div>
-                </div>
+                    No win prediction for this fight — the model skips fighters with
+                    too little UFC history. Everything below is computed
+                    independently and is still shown.
+                  </p>
+                )}
 
                 {/* Radar */}
                 <p
@@ -275,6 +346,28 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                   f2={fight.f2}
                   data={fight.commonOpponents ?? undefined}
                 />
+
+                {/* Props. Still fetched lazily — the component only mounts when
+                    this panel is open — but with no second click to find it. */}
+                <div className="flex items-center gap-2 mt-5 mb-3">
+                  <p
+                    className="text-xs font-medium uppercase tracking-widest"
+                    style={{ color: "var(--text-secondary)" }}
+                  >
+                    Props
+                  </p>
+                  <span
+                    className="text-xs px-1.5 rounded"
+                    style={{
+                      background: "rgba(255,59,92,0.12)",
+                      color: "var(--matrix-red)",
+                      letterSpacing: "1px",
+                    }}
+                  >
+                    EXPERIMENTAL
+                  </span>
+                </div>
+                <FightProps f1={fight.f1} f2={fight.f2} />
               </div>
             )}
           </div>
