@@ -42,6 +42,18 @@ export type MarketQuote = {
   med: number | null
   /** How many books are behind `p`. 1 means "one book", not "consensus". */
   books: number
+  /**
+   * DraftKings' own price for this market — the one the operator can actually
+   * take, since BestFightOdds carries neither of their books.
+   *
+   * Captured manually via scripts/dk_odds_console.js, so it is null far more
+   * often than the BFO fields and can be materially staler: `at` is the capture
+   * time and is the only thing that says how old the number is. It is
+   * deliberately NOT part of the de-vigged consensus in `p` — folding one book
+   * into that denominator would move the benchmark every measurement in
+   * RESEARCH.md was taken against.
+   */
+  dk?: { american: number; at: string } | null
 }
 
 /** Method probabilities for one corner. */
@@ -83,6 +95,15 @@ export type MarketProps = {
   /** Goes the distance. */
   dist?: MarketQuote | null
   method?: MarketMethod | null
+  /**
+   * DraftKings moneyline. Lives at the top level rather than on a quote because
+   * the moneyline is served as its own columns (marketF1/marketF2), not as a
+   * MarketQuote. `f1` is the card's fighter_1.
+   */
+  dk_ml?: {
+    f1?: { american: number; at: string } | null
+    f2?: { american: number; at: string } | null
+  } | null
 }
 
 // ---------------------------------------------------------------------------
@@ -159,4 +180,34 @@ export function edgeTone(pp: number | null): 'none' | 'slight' | 'strong' {
 export function hasMarketProps(mp: MarketProps | null | undefined): boolean {
   if (!mp) return false
   return Boolean(mp.u15 || mp.u25 || mp.dist || mp.method)
+}
+
+/**
+ * Is DraftKings' price better than the best on the BestFightOdds board?
+ *
+ * Comparison is on the raw American number, which is correct across the whole
+ * range: any positive price beats any negative one, and within each sign the
+ * larger number pays more. (Same reasoning as the backend's `max()`.)
+ *
+ * Null when either side is missing — "we don't know" must not render as "no".
+ */
+export function dkBeatsBoard(quote: MarketQuote | null | undefined): boolean | null {
+  const dk = quote?.dk?.american
+  const best = quote?.best
+  if (dk == null || best == null) return null
+  return dk > best
+}
+
+/** "2026-08-12 15:00:00" -> "Aug 12, 15:00". Empty string if unparseable. */
+export function formatCaptureTime(at: string | null | undefined): string {
+  if (!at) return ''
+  const d = new Date(at.replace(' ', 'T') + 'Z')
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
 }

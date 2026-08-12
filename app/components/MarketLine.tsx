@@ -2,9 +2,11 @@
 
 import {
   DASH,
+  dkBeatsBoard,
   edgePp,
   edgeTone,
   formatAmerican,
+  formatCaptureTime,
   formatEdge,
   moveFromOpen,
   type MarketQuote,
@@ -73,6 +75,32 @@ export function MarketLine({
         ) : null}
       </span>
 
+      {/* DraftKings' own number: the one price here the operator can actually
+          take, because BFO carries neither of their books. Rendered only when a
+          capture exists — most fights will not have one, and an em dash for
+          every market would be noise. Highlighted when it beats the board's
+          best, which is the whole reason to show it next to that number. */}
+      {quote.dk && (
+        <>
+          <span style={sep}>·</span>
+          <span
+            style={{
+              color: dkBeatsBoard(quote) ? "var(--matrix-green)" : "var(--text-secondary)",
+              fontWeight: dkBeatsBoard(quote) ? 700 : 400,
+            }}
+            title={
+              `DraftKings ${formatAmerican(quote.dk.american)}` +
+              (formatCaptureTime(quote.dk.at) ? `, captured ${formatCaptureTime(quote.dk.at)}` : "") +
+              (dkBeatsBoard(quote)
+                ? " — better than the best price on the BestFightOdds board."
+                : " — the BestFightOdds board has a better price, but not necessarily at a book you use.")
+            }
+          >
+            DK {formatAmerican(quote.dk.american)}
+          </span>
+        </>
+      )}
+
       {move !== null && Math.abs(move) >= 0.5 && (
         <>
           <span style={sep}>·</span>
@@ -137,7 +165,9 @@ export function MarketFootnote() {
       Market figures are de-vigged consensus across the sportsbooks
       BestFightOdds lists; prices shown are that board&rsquo;s best. DraftKings
       and BetMGM post no prices there and Fanatics is not covered, so treat them
-      as a reference rather than a quote.
+      as a reference rather than a quote. A <strong>DK</strong> price, where
+      shown, is DraftKings&rsquo; own number from the latest manual capture and
+      is not part of the consensus.
     </p>
   );
 }

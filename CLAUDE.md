@@ -136,6 +136,17 @@ Four rules, each of which exists because breaking it produces a plausible-lookin
    0..1. `FighterColumn` divides by 100 before comparing. Duration props are already 0..1 on both
    sides.
 
+A quote may also carry **`dk`** — DraftKings' own price, the only number here the operator can
+actually take, since BestFightOdds carries neither of their books. It renders as `DK -110` beside
+the board's best and is **highlighted when it beats that best**, which is the entire reason to put
+the two next to each other. Comparison is on the raw American value (`dkBeatsBoard`), which is
+correct across the sign change: -125 beats -135, and any plus price beats any minus one.
+
+Two things not to lose: `dk` is captured MANUALLY (DK's odds API is behind bot protection), so it
+is null far more often than the BFO fields and can be materially staler — `dk.at` is the only thing
+that says how old it is. And it is **not** part of the de-vigged `p`, so an edge is never computed
+against it.
+
 `best` is best-of-the-books-BestFightOdds-quotes and is rendered with `best_book` beside it:
 DraftKings and BetMGM post no prices there and Fanatics is not carried, so it is a market
 reference, not a quote the user can take. `MarketFootnote` says so once per section. Missing data
