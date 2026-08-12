@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MarketLine, MarketFootnote } from "./MarketLine";
+import type { MarketMethod, MarketMethodCorner } from "../lib/market";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
@@ -33,20 +35,31 @@ async function fetchMethod(
   }
 }
 
-const ROWS: { key: "KO" | "Sub" | "Dec"; label: string }[] = [
-  { key: "KO", label: "KO/TKO" },
-  { key: "Sub", label: "Submission" },
-  { key: "Dec", label: "Decision" },
+// `market` maps the model's KO/Sub/Dec onto the six BFO method props, which
+// are keyed ko/sub/dec. Same three outcomes, different casing on each side of
+// the wire — mapped explicitly rather than lowercased, so a future rename
+// breaks the build instead of silently pairing the wrong market with a bar.
+const ROWS: {
+  key: "KO" | "Sub" | "Dec";
+  market: "ko" | "sub" | "dec";
+  label: string;
+}[] = [
+  { key: "KO", market: "ko", label: "KO/TKO" },
+  { key: "Sub", market: "sub", label: "Submission" },
+  { key: "Dec", market: "dec", label: "Decision" },
 ];
 
 function FighterColumn({
   name,
   data,
   other,
+  market,
 }: {
   name: string;
   data: { KO: number; Sub: number; Dec: number };
   other: { KO: number; Sub: number; Dec: number };
+  /** This corner's de-vigged method prices, or null when none were harvested. */
+  market?: MarketMethodCorner | null;
 }) {
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -104,6 +117,15 @@ function FighterColumn({
                 }}
               />
             </div>
+            {/* The model's numbers here are PERCENTAGES (0-100) while every
+                market quote is a 0..1 probability, so scale before comparing —
+                otherwise every edge is off by two orders of magnitude. */}
+            {market !== undefined && (
+              <MarketLine
+                quote={market ? market[row.market] : null}
+                modelP={val / 100}
+              />
+            )}
           </div>
         );
       })}
@@ -112,12 +134,38 @@ function FighterColumn({
 }
 
 // Shared presentational view (used by both fetched and prop-fed data)
-function MethodView({ data }: { data: MethodResp }) {
+//
+// NB on corner alignment: `market.f1` is the CARD's fighter_1, and so is
+// `data.f1_name` — the backend re-orients the market block when BFO lists the
+// corners the other way round (lookup_prop_lines / _orient_market_props). If
+// that ever regressed, each fighter would be shown against the other's method
+// prices, which looks entirely plausible on screen. Nothing here can detect
+// it; the guarantee is upstream.
+function MethodView({
+  data,
+  market,
+}: {
+  data: MethodResp;
+  market?: MarketMethod | null;
+}) {
   return (
-    <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-      <FighterColumn name={data.f1_name} data={data.f1} other={data.f2} />
-      <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
-      <FighterColumn name={data.f2_name} data={data.f2} other={data.f1} />
+    <div>
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        <FighterColumn
+          name={data.f1_name}
+          data={data.f1}
+          other={data.f2}
+          market={market === undefined ? undefined : market?.f1 ?? null}
+        />
+        <div style={{ width: 1, alignSelf: "stretch", background: "var(--border)" }} />
+        <FighterColumn
+          name={data.f2_name}
+          data={data.f2}
+          other={data.f1}
+          market={market === undefined ? undefined : market?.f2 ?? null}
+        />
+      </div>
+      {market && <MarketFootnote />}
     </div>
   );
 }
@@ -127,6 +175,7 @@ export default function MethodPerFighter({
   f2,
   asOfDate,
   data: providedData,
+  market,
 }: {
   f1: string;
   f2: string;
@@ -134,6 +183,12 @@ export default function MethodPerFighter({
   // If provided (e.g. past cards reading from storage), render directly with
   // NO network call. If omitted (upcoming cards), fetch live.
   data?: MethodResp | null;
+  /**
+   * De-vigged method prices for this fight. Undefined hides the market rows
+   * entirely; null shows them as dashes. Only the per-fighter legs are used —
+   * `market.fight` has no price and is not rendered here.
+   */
+  market?: MarketMethod | null;
 }) {
   const [data, setData] = useState<MethodResp | null>(providedData ?? null);
   const [loading, setLoading] = useState(!providedData);
@@ -173,5 +228,5 @@ export default function MethodPerFighter({
       </p>
     );
 
-  return <MethodView data={data} />;
+  return <MethodView data={data} market={market} />;
 }

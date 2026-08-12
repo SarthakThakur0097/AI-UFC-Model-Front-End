@@ -229,6 +229,14 @@ export default async function Home({
       method: fight.method ?? { Decision: 0, "KO/TKO": 0, Submission: 0 },
       methodPerFighter: fight.methodPerFighter ?? null,
       commonOpponents: fight.commonOpponents ?? null,
+      // Carried even when hasPred is false. This projection substitutes 50/50
+      // probabilities for a fight the model could not price, and the market
+      // lines are a fact about the market regardless — but note that the
+      // 50/50 stand-in means no EDGE should ever be read off such a card. The
+      // detail panel only renders market rows next to real model numbers
+      // (FightProps and MethodPerFighter both fetch their own), so the phantom
+      // never reaches a comparison.
+      marketProps: fight.marketProps ?? null,
     };
   });
 
