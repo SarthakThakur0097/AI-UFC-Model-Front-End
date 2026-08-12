@@ -5,6 +5,7 @@ import FightRadar from "./FightRadar";
 import MethodPerFighter from "./MethodPerFighter";
 import CommonOpponents from "./CommonOpponents";
 import FightProps from "./FightProps";
+import type { MarketProps } from "../lib/market";
 import FighterRating from "./FighterRating";
 import EndOfCardEmailCapture from "./EndOfCardEmailCapture";
 import { lastNameOf } from "../lib/props";
@@ -39,6 +40,12 @@ type Fight = {
     f1_win: number;
     f2_win: number;
   } | null;
+  /**
+   * De-vigged prop lines for the markets the models price. Optional at every
+   * level — most fights on a slate have no harvested line, and those render
+   * without market rows rather than with placeholders.
+   */
+  marketProps?: MarketProps | null;
 };
 
 type FightCardProps = {
@@ -463,6 +470,7 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                     f1={fight.f1}
                     f2={fight.f2}
                     data={fight.methodPerFighter ?? undefined}
+                    market={fight.marketProps?.method ?? null}
                   />
                   {/* Common Opponents */}
                   <p
@@ -499,7 +507,11 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                       EXPERIMENTAL
                     </span>
                   </div>
-                  <FightProps f1={fight.f1} f2={fight.f2} />
+                  <FightProps
+                    f1={fight.f1}
+                    f2={fight.f2}
+                    marketProps={fight.marketProps ?? null}
+                  />
                 </div>
               )}
             </div>

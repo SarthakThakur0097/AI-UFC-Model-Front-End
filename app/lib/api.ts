@@ -1,3 +1,5 @@
+import type { MarketProps } from './market'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000'
 
 export async function getPrediction(f1: string, f2: string) {
@@ -99,6 +101,16 @@ export type UpcomingFight = {
   method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
   methodPerFighter?: MethodPerFighterData | null
   commonOpponents?: { common: any[]; count: number } | null
+  /**
+   * De-vigged prop lines for the markets the models price — the three duration
+   * markets and the six corner x method props. See lib/market.ts for the shape
+   * and for the two limitations the UI must not paper over.
+   *
+   * Present on `error: true` fights too: the model failing says nothing about
+   * whether a line exists, and those are exactly the debut/thin-history bouts
+   * where the market is the only signal available.
+   */
+  marketProps?: MarketProps | null
   error?: boolean
 }
 
@@ -160,6 +172,7 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
         method?: { Decision: number; 'KO/TKO': number; Submission: number; pick: string }
         method_per_fighter?: MethodPerFighterData | null
         common_opponents?: { common: any[]; count: number } | null
+        market_props?: MarketProps | null
         error?: boolean
       }[]
     }[] = await res.json()
@@ -190,6 +203,7 @@ export async function getUpcomingFights(): Promise<UpcomingFight[]> {
           method: f.method,
           methodPerFighter: f.method_per_fighter ?? null,
           commonOpponents: f.common_opponents ?? null,
+          marketProps: f.market_props ?? null,
           error: f.error ?? (f.pick === undefined),
         })
       }

@@ -11,6 +11,8 @@ import {
   type FighterProps,
   type PropsFailure,
 } from "../lib/props";
+import { MarketLine, MarketFootnote } from "./MarketLine";
+import { hasMarketProps, type MarketProps, type MarketQuote } from "../lib/market";
 
 /**
  * Props are shown as soon as a fight is expanded — there is no second toggle to
@@ -32,12 +34,36 @@ type FightPropsProps = {
    * chips, so projection and reality sit in the same picture.
    */
   actuals?: { f1?: ActualStats | null; f2?: ActualStats | null } | null;
+  /**
+   * De-vigged market lines for the same duration markets, from /upcoming (or
+   * /results for a settled card). Optional throughout: most fights have no
+   * harvested line, and those must render without one rather than with a
+   * placeholder.
+   */
+  marketProps?: MarketProps | null;
 };
 
 const label = { fontSize: 11, color: "var(--text-secondary)" } as const;
 
-/** Duration markets: one labelled bar each. */
-function DurationBar({ name, p }: { name: string; p: number }) {
+/**
+ * Duration markets: one labelled bar each, with the market's own number
+ * underneath when a line exists.
+ *
+ * `market` must be the quote for the SAME side the bar shows. The stored
+ * quotes are all "under"/"yes" sides (u15, u25, dist), so the Over 1.5 bar
+ * gets no quote rather than the under's — showing a market probability
+ * against the complementary side would invert the edge, and it would look
+ * completely reasonable while doing it.
+ */
+function DurationBar({
+  name,
+  p,
+  market,
+}: {
+  name: string;
+  p: number;
+  market?: MarketQuote | null;
+}) {
   return (
     <div className="mb-2">
       <div className="flex items-center justify-between mb-1">
@@ -58,6 +84,7 @@ function DurationBar({ name, p }: { name: string; p: number }) {
           }}
         />
       </div>
+      {market !== undefined && <MarketLine quote={market} modelP={p} />}
     </div>
   );
 }
@@ -209,7 +236,7 @@ function TakedownChips({
   );
 }
 
-export default function FightProps({ f1, f2, actuals }: FightPropsProps) {
+export default function FightProps({ f1, f2, actuals, marketProps }: FightPropsProps) {
   const [data, setData] = useState<FightPropsData | null>(null);
   const [failure, setFailure] = useState<PropsFailure | null>(null);
   const [fetched, setFetched] = useState(false);
@@ -258,13 +285,33 @@ export default function FightProps({ f1, f2, actuals }: FightPropsProps) {
   const n1 = lastNameOf(data.f1 || f1);
   const n2 = lastNameOf(data.f2 || f2);
 
+  // Only pass a market slot to the bars whose side we actually hold a quote
+  // for. `undefined` means "this bar has no market row at all"; `null` means
+  // "there is a market row and we have no line" and renders a dash.
+  const mkt = hasMarketProps(marketProps) ? marketProps! : null;
+
   return (
     <div>
       <p style={{ ...label, marginBottom: 8 }}>Fight duration</p>
-      <DurationBar name="Under 1.5 rounds" p={duration.p_under_1_5} />
+      <DurationBar
+        name="Under 1.5 rounds"
+        p={duration.p_under_1_5}
+        market={mkt ? mkt.u15 ?? null : undefined}
+      />
+      {/* No market slot: the stored quote is the UNDER side, and pairing it
+          with the Over bar would flip the sign of the edge. */}
       <DurationBar name="Over 1.5 rounds" p={complement(duration.p_under_1_5)} />
-      <DurationBar name="Under 2.5 rounds" p={duration.p_under_2_5} />
-      <DurationBar name="Goes to decision" p={duration.p_distance} />
+      <DurationBar
+        name="Under 2.5 rounds"
+        p={duration.p_under_2_5}
+        market={mkt ? mkt.u25 ?? null : undefined}
+      />
+      <DurationBar
+        name="Goes to decision"
+        p={duration.p_distance}
+        market={mkt ? mkt.dist ?? null : undefined}
+      />
+      {mkt && <MarketFootnote />}
 
       <p style={{ ...label, margin: "14px 0 8px" }}>
         Projected significant strikes landed

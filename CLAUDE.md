@@ -102,11 +102,45 @@ one. Deleting `fights.ts` is safe if you're already touching this area.
 | `GET /fighter/{name}/glicko` | `FighterRating` (client) | none |
 | `GET /fighter/{name}/radar\|radar_adj\|radar_discipline\|radar_defense` | `FightRadar` (client) | none |
 | `GET /predict/method_per_fighter?f1=&f2=` | `MethodPerFighter` (client) | none |
+| `GET /predict/props?f1=&f2=` | `FightProps` (client) | `revalidate: 3600` |
 | `GET /fight/common_opponents?f1=&f2=` | `CommonOpponents` (client) | none |
 
 `FightRadar` has four modes and the axis label constants (`AXES_DISCIPLINE`, `AXES_DEFENSE`,
 `AXES_RAW`, `AXES_ADJ`) **must match the backend's stat keys exactly** — a renamed key on the
 backend silently renders a zeroed axis, not an error.
+
+### The market layer (`lib/market.ts`, `components/MarketLine.tsx`)
+
+`/upcoming` and `/results` carry `market_props` beside the model's own numbers: de-vigged
+consensus prices for the three duration markets and the six corner x method props. `lib/market.ts`
+owns the types and formatting, `MarketLine` renders one comparison row, and both `FightProps`
+(duration) and `MethodPerFighter` (method) drop it under their existing bars.
+
+Four rules, each of which exists because breaking it produces a plausible-looking wrong number:
+
+1. **No edge on the moneyline.** `MarketLine` is only given a `modelP` for duration and method.
+   The backend's RESEARCH.md §1 measures the winner model at or slightly below the closing line,
+   so a green edge badge there would advertise something the project's own evidence says is not
+   real. `edgeTone` also stays neutral below 3pp, because a de-vigged prop edge smaller than that
+   is inside the noise of the de-vig itself.
+
+2. **Match the side, not just the market.** The stored quotes are the *under* / *yes* sides
+   (`u15`, `u25`, `dist`). The "Over 1.5 rounds" bar therefore gets **no** market row — pairing it
+   with the under's quote would invert the sign of the edge while looking entirely reasonable.
+
+3. **`market.f1` is the card's fighter_1.** The backend re-orients when BestFightOdds lists the
+   corners the other way. Nothing in this repo can detect a regression there; each fighter would
+   simply be shown against the other's method prices.
+
+4. **Units differ across the wire.** Model method probabilities are 0-100; every market quote is
+   0..1. `FighterColumn` divides by 100 before comparing. Duration props are already 0..1 on both
+   sides.
+
+`best` is best-of-the-books-BestFightOdds-quotes and is rendered with `best_book` beside it:
+DraftKings and BetMGM post no prices there and Fanatics is not carried, so it is a market
+reference, not a quote the user can take. `MarketFootnote` says so once per section. Missing data
+renders as an em dash — never substitute a default, which is the same trap `?tab=odds` avoids by
+refusing to fill in 50/50 for an unpredicted fight.
 
 ### Routing
 
