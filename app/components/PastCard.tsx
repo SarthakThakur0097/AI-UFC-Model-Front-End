@@ -6,6 +6,7 @@ import FightRadar from "./FightRadar";
 import FighterRating from "./FighterRating";
 import CommonOpponents from "./CommonOpponents";
 import FightProps from "./FightProps";
+import type { MarketProps } from "../lib/market";
 
 type MethodPerFighterData = {
   f1_name: string;
@@ -72,6 +73,16 @@ type PastFight = {
   actuals?: FightActuals | null;
   // null when the fight had no settleable result (DQ / NC / Overturned)
   props_settled?: PropSettled[] | null;
+  // The same five market fields /upcoming carries, frozen at their last
+  // pre-fight values — i.e. the close. NULL for every fight promoted before
+  // the snapshot shipped, and there is no backfill, so null means "not
+  // captured" and must render as absence rather than as an error. Units match
+  // /upcoming exactly: the moneyline pair is 0-100, market_props quotes 0..1.
+  market_f1?: number | null;
+  market_f2?: number | null;
+  blend_f1?: number | null;
+  blend_f2?: number | null;
+  market_props?: MarketProps | null;
 };
 
 type PastCardProps = {
@@ -444,6 +455,44 @@ export default function PastCard({ event, date, fights }: PastCardProps) {
                     </p>
                   </div>
 
+                  {/* Where the market closed, beside what the model said. No
+                      edge is computed: the winner model is measured at or
+                      slightly below the closing line, so a signed number here
+                      would advertise something that isn't there — and after
+                      the fact it would be hindsight besides. Absent for every
+                      fight promoted before the snapshot shipped, which is most
+                      of the current history; that renders as nothing at all
+                      rather than as a dash, because a settled fight has no
+                      pending line to be missing. */}
+                  {typeof fight.market_f1 === "number" && (
+                    <div className="-mt-2 mb-4">
+                      <p
+                        className="text-xs"
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        {"Closing market: "}
+                        <span style={{ color: "var(--text-primary)", ...mono }}>
+                          {Math.round(fight.market_f1)}% /{" "}
+                          {Math.round(fight.market_f2 ?? 100 - fight.market_f1)}%
+                        </span>
+                        {typeof fight.blend_f1 === "number" && (
+                          <>
+                            {"  ·  Blend: "}
+                            <span
+                              style={{ color: "var(--text-primary)", ...mono }}
+                            >
+                              {Math.round(fight.blend_f1)}% /{" "}
+                              {Math.round(
+                                fight.blend_f2 ?? 100 - fight.blend_f1
+                              )}
+                              %
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
                   {/* Performance Radar — current profile (not fight-time) */}
                   <p
                     className="text-xs font-medium uppercase tracking-widest mb-1 mt-2 text-center"
@@ -468,6 +517,7 @@ export default function PastCard({ event, date, fights }: PastCardProps) {
                       f1={fight.f1}
                       f2={fight.f2}
                       data={fight.method_per_fighter}
+                      market={fight.market_props?.method ?? null}
                     />
                   ) : (
                     <p
@@ -595,6 +645,7 @@ export default function PastCard({ event, date, fights }: PastCardProps) {
                           }
                         : null
                     }
+                    marketProps={fight.market_props ?? null}
                   />
 
                   {fight.props_settled && fight.props_settled.length > 0 && (

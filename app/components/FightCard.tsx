@@ -5,7 +5,11 @@ import FightRadar from "./FightRadar";
 import MethodPerFighter from "./MethodPerFighter";
 import CommonOpponents from "./CommonOpponents";
 import FightProps from "./FightProps";
-import type { MarketProps } from "../lib/market";
+import {
+  formatAmerican,
+  formatCaptureTime,
+  type MarketProps,
+} from "../lib/market";
 import FighterRating from "./FighterRating";
 import EndOfCardEmailCapture from "./EndOfCardEmailCapture";
 import { lastNameOf } from "../lib/props";
@@ -55,6 +59,50 @@ type FightCardProps = {
 };
 
 const mono = { fontFamily: "var(--font-mono)" } as const;
+
+/**
+ * DraftKings' own moneyline, when a manual capture exists.
+ *
+ * The only takeable price on the card: BestFightOdds carries neither DK nor
+ * BetMGM, so `marketF1/marketF2` beside it are a de-vigged reference and not
+ * something the reader can bet. Unlike a MarketQuote's `dk`, there is no
+ * `best` to compare against — the moneyline arrives as its own columns, not as
+ * a quote — so this is shown plainly with no better/worse highlight.
+ *
+ * Captured by hand, so it can be materially staler than everything else on the
+ * row; `at` is the only thing that says how old it is, and it is always
+ * rendered rather than tucked into a tooltip.
+ */
+function DkMoneyline({
+  dkMl,
+  f1,
+  f2,
+}: {
+  dkMl: NonNullable<MarketProps["dk_ml"]>;
+  f1: string;
+  f2: string;
+}) {
+  const a = dkMl.f1?.american;
+  const b = dkMl.f2?.american;
+  if (a == null && b == null) return null;
+  const at = formatCaptureTime(dkMl.f1?.at ?? dkMl.f2?.at);
+
+  return (
+    <p className="text-xs mt-1.5" style={{ color: "var(--text-secondary)" }}>
+      {"DraftKings: "}
+      <span style={{ color: "var(--text-primary)", ...mono }}>
+        {lastNameOf(f1)} {formatAmerican(a)} / {lastNameOf(f2)}{" "}
+        {formatAmerican(b)}
+      </span>
+      {at && (
+        <span style={{ opacity: 0.75 }}>
+          {"  ·  captured "}
+          {at}
+        </span>
+      )}
+    </p>
+  );
+}
 
 // "Islam Makhachev" -> "IM" for the avatar circles on the hero row
 function initials(name: string): string {
@@ -421,6 +469,13 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                               </>
                             )}
                           </p>
+                          {fight.marketProps?.dk_ml && (
+                            <DkMoneyline
+                              dkMl={fight.marketProps.dk_ml}
+                              f1={fight.f1}
+                              f2={fight.f2}
+                            />
+                          )}
                           {disagrees && (
                             <span
                               className="inline-block text-xs px-1.5 py-0.5 rounded mt-1.5"
@@ -440,14 +495,42 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                       )}
                     </>
                   ) : (
-                    <p
-                      className="text-xs mb-5"
-                      style={{ color: "var(--text-muted)", lineHeight: 1.6 }}
-                    >
-                      No win prediction for this fight — the model skips fighters
-                      with too little UFC history. Everything below is computed
-                      independently and is still shown.
-                    </p>
+                    <div className="mb-5">
+                      <p
+                        className="text-xs"
+                        style={{ color: "var(--text-muted)", lineHeight: 1.6 }}
+                      >
+                        No win prediction for this fight — the model skips
+                        fighters with too little UFC history. Everything below is
+                        computed independently and is still shown.
+                      </p>
+                      {/* The model failing to price a fight says nothing about
+                          whether a line exists, and these are exactly the
+                          debut/thin-history bouts where the market is the only
+                          signal there is — so it is shown here even though the
+                          row upstairs reads N/A. No blend and no edge: both
+                          need a model number, and this fight has none. The
+                          50/50 stand-in page.tsx substitutes is never drawn. */}
+                      {typeof fight.marketF1 === "number" && (
+                        <p
+                          className="text-xs mt-1.5"
+                          style={{ color: "var(--text-secondary)" }}
+                        >
+                          {"Betting market: "}
+                          <span style={{ color: "var(--text-primary)", ...mono }}>
+                            {Math.round(fight.marketF1)}% /{" "}
+                            {Math.round(fight.marketF2 ?? 100 - fight.marketF1)}%
+                          </span>
+                        </p>
+                      )}
+                      {fight.marketProps?.dk_ml && (
+                        <DkMoneyline
+                          dkMl={fight.marketProps.dk_ml}
+                          f1={fight.f1}
+                          f2={fight.f2}
+                        />
+                      )}
+                    </div>
                   )}
 
                   {/* Radar */}
