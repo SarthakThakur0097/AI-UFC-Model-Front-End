@@ -81,6 +81,14 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const toggle = (i: number) => setExpanded(expanded === i ? null : i);
 
+  // Card-wide probability mode. "blend" (default) leads with the model+market
+  // blend where a line exists; "model" shows raw model output everywhere.
+  // Fights with no scraped line are model-only in both modes.
+  const [probMode, setProbMode] = useState<"blend" | "model">("blend");
+  const cardHasBlend = fights.some(
+    (f) => typeof f.blendF1 === "number" && typeof f.blendF2 === "number"
+  );
+
   return (
     <div
       style={{
@@ -103,17 +111,51 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
             {date}
           </p>
         </div>
-        <span
-          className="text-xs px-2.5 py-1 rounded"
-          style={{
-            background: "var(--accent-soft-2)",
-            color: "var(--matrix-green)",
-            letterSpacing: "1px",
-            ...mono,
-          }}
-        >
-          UPCOMING
-        </span>
+        <div className="flex items-center gap-2">
+          {/* Blend/model view switch — only when some fight has a market line */}
+          {cardHasBlend && (
+            <div className="flex" role="group" aria-label="Probability mode">
+              {(["blend", "model"] as const).map((m, i) => (
+                <button
+                  key={m}
+                  onClick={() => setProbMode(m)}
+                  title={
+                    m === "blend"
+                      ? "Model + market blend (default) — measured more accurate than either alone."
+                      : "Raw model output, ignoring the betting market."
+                  }
+                  className="text-[10px] px-2 py-1 cursor-pointer uppercase"
+                  style={{
+                    letterSpacing: "0.5px",
+                    border: "1px solid var(--border)",
+                    borderLeft: i === 0 ? "1px solid var(--border)" : "none",
+                    borderRadius: i === 0 ? "5px 0 0 5px" : "0 5px 5px 0",
+                    background:
+                      probMode === m ? "var(--accent-soft-2)" : "transparent",
+                    color:
+                      probMode === m
+                        ? "var(--matrix-green)"
+                        : "var(--text-secondary)",
+                    ...mono,
+                  }}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+          )}
+          <span
+            className="text-xs px-2.5 py-1 rounded"
+            style={{
+              background: "var(--accent-soft-2)",
+              color: "var(--matrix-green)",
+              letterSpacing: "1px",
+              ...mono,
+            }}
+          >
+            UPCOMING
+          </span>
+        </div>
       </div>
 
       {/* Fights: hero box for the main event, quiet one-line boxes after */}
@@ -126,8 +168,9 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
           // case — so everything below degrades to model-only silently.
           const hasBlend =
             typeof fight.blendF1 === "number" && typeof fight.blendF2 === "number";
-          const leadF1 = hasBlend ? (fight.blendF1 as number) : fight.f1Prob;
-          const leadF2 = hasBlend ? (fight.blendF2 as number) : fight.f2Prob;
+          const useBlend = probMode === "blend" && hasBlend;
+          const leadF1 = useBlend ? (fight.blendF1 as number) : fight.f1Prob;
+          const leadF2 = useBlend ? (fight.blendF2 as number) : fight.f2Prob;
           const disagrees =
             typeof fight.marketF1 === "number" &&
             Math.abs(fight.f1Prob - fight.marketF1) >= 15;
@@ -210,6 +253,20 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                           >
                             {leaderLabel}
                           </span>
+                          {useBlend && (
+                            <span
+                              className="text-[9px] px-1 py-0.5 rounded shrink-0"
+                              style={{
+                                background: "var(--accent-soft)",
+                                color: "var(--text-data)",
+                                letterSpacing: "0.5px",
+                                ...mono,
+                              }}
+                              title="Model + market blend — raw model and market numbers are in the expanded panel."
+                            >
+                              BLEND
+                            </span>
+                          )}
                         </>
                       ) : (
                         <span
@@ -244,16 +301,32 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                         {fight.f2}
                       </span>
                     </div>
-                    <span
-                      className="text-xs shrink-0"
-                      style={{
-                        color: hasPrediction
-                          ? "var(--text-data)"
-                          : "var(--text-muted)",
-                        ...mono,
-                      }}
-                    >
-                      {hasPrediction ? leaderLabel : "N/A"}
+                    <span className="flex items-center gap-1.5 shrink-0">
+                      <span
+                        className="text-xs"
+                        style={{
+                          color: hasPrediction
+                            ? "var(--text-data)"
+                            : "var(--text-muted)",
+                          ...mono,
+                        }}
+                      >
+                        {hasPrediction ? leaderLabel : "N/A"}
+                      </span>
+                      {hasPrediction && useBlend && (
+                        <span
+                          className="text-[9px] px-1 py-0.5 rounded"
+                          style={{
+                            background: "var(--accent-soft)",
+                            color: "var(--text-data)",
+                            letterSpacing: "0.5px",
+                            ...mono,
+                          }}
+                          title="Model + market blend — raw model and market numbers are in the expanded panel."
+                        >
+                          BLEND
+                        </span>
+                      )}
                     </span>
                   </div>
                 )}
@@ -328,10 +401,9 @@ export default function FightCard({ event, date, fights }: FightCardProps) {
                       {hasBlend ? (
                         <div className="mb-5">
                           <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
-                            Model + market blend. Model alone:{" "}
-                            <span style={{ color: "var(--text-primary)" }}>
-                              {Math.round(fight.f1Prob)}% / {Math.round(fight.f2Prob)}%
-                            </span>
+                            {useBlend
+                              ? "Showing the model blended with the betting market — switch to MODEL for the raw model output."
+                              : "Showing raw model output — switch to BLEND to mix in the betting market, which has measured more accurate than either alone."}
                             {typeof fight.marketF1 === "number" && (
                               <>
                                 {"  ·  Market: "}
