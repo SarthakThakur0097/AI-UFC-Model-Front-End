@@ -191,6 +191,18 @@ export default async function Home({
                   method_per_fighter: f.method_per_fighter,
                   actuals: f.actuals ?? null,
                   props_settled: f.props_settled ?? null,
+                  // The closing market, the blend, and the prop quotes.
+                  // PastCard renders all five (market/blend line, method
+                  // market, FightProps); leaving them out of this mapping is
+                  // what kept that section from ever appearing. Null for
+                  // every fight promoted before the snapshot shipped, which
+                  // is most of the history — the component already treats
+                  // null as absence rather than as an error.
+                  market_f1: f.market_f1 ?? null,
+                  market_f2: f.market_f2 ?? null,
+                  blend_f1: f.blend_f1 ?? null,
+                  blend_f2: f.blend_f2 ?? null,
+                  market_props: f.market_props ?? null,
                 }))}
               />
             ))}

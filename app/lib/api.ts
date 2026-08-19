@@ -54,6 +54,34 @@ export async function getAccuracy(): Promise<AccuracyResponse | null> {
 }
 
 /**
+ * Drop `market_props.dk_ml` from a past fight.
+ *
+ * `/results` alphabetises each pair, so its `f1`/`f2` are often the reverse of
+ * the card. Most paired fields are re-oriented to match: `f1_prob`/`f2_prob`,
+ * `market_f1`/`market_f2`, `blend_f1`/`blend_f2` and `market_props.method` all
+ * flip with the corners (verified against the same fights while they were still
+ * on /upcoming). `dk_ml` does NOT — it stays byte-identical, still keyed to the
+ * original card's fighter_1, so on a swapped fight `dk_ml.f1` is the price for
+ * the fighter shown in the f2 column.
+ *
+ * Nothing on the past tab reads it today, and rather than leave a field that
+ * would render a confidently wrong price the first time someone wires it up, it
+ * is removed here so it reads as absent. Delete this once `/results` re-orients
+ * `dk_ml` the way it already re-orients `method`. The duration quotes (`u15`,
+ * `u25`, `dist`) describe the fight rather than a corner and need no such care.
+ */
+function stripUnorientedMarket<T extends object>(fight: T): T {
+  const mp = (fight as { market_props?: unknown }).market_props as
+    | Record<string, unknown>
+    | null
+    | undefined
+  if (!mp || typeof mp !== 'object' || !('dk_ml' in mp)) return fight
+  const rest = { ...mp }
+  delete rest.dk_ml
+  return { ...fight, market_props: rest }
+}
+
+/**
  * Past cards, with the main event hoisted to the front of each fight list.
  *
  * `/results` carries no `position` field and returns fights in arbitrary order,
@@ -74,7 +102,7 @@ export async function getPastCards(limit = 3) {
         card?.event ?? '',
         Array.isArray(card?.fights) ? card.fights : []
       )
-      return { ...card, fights, mainEventKnown }
+      return { ...card, fights: fights.map(stripUnorientedMarket), mainEventKnown }
     })
   } catch {
     return []
