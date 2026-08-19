@@ -107,7 +107,28 @@ one. Deleting `fights.ts` is safe if you're already touching this area.
 
 `FightRadar` has four modes and the axis label constants (`AXES_DISCIPLINE`, `AXES_DEFENSE`,
 `AXES_RAW`, `AXES_ADJ`) **must match the backend's stat keys exactly** — a renamed key on the
-backend silently renders a zeroed axis, not an error.
+backend silently renders a missing axis, not an error.
+
+#### A null axis is not a zero
+
+The backend publishes `null` for a metric it deliberately declined to compute (adjusted `Control`
+is gated behind takedown rate, so a striker who never shoots has none). Plotting that at 0 puts
+the fighter at worst-in-division on a skill that was never measured — the exact misreading the
+suppression exists to prevent. It is common: ~65% of fighters have at least one null adjusted
+axis, 39% on defense, 15% on discipline; raw has none.
+
+`readAxis()` is the single reader and returns `number | null`; **never `?? 0`**, and never
+substitute the median, 50, or the raw-tab percentile. A genuine 0 (Njokuani's discipline
+`Wrestling`) is a number and must survive. In the head-to-head chart an axis is drawn only when
+*both* corners have a value — the user reads the gap between polygons as a skill difference, so a
+spoke measured on one side only cannot be drawn. Dropped axes are named underneath rather than
+silently omitted, and below `MIN_AXES` (3, the fewest that enclose an area) the chart renders an
+empty state instead of a collapsed shape.
+
+Do **not** gate any of this on `limited`. It is all-or-nothing — true only when all nine adjusted
+axes are null — so ~26% of fighters carry `limited: false` while part of the chart is missing, and
+`discipline`/`defense` have no such flag at all. The individual nulls are the only source of truth;
+a `limited: true` fighter falls out of the same per-axis check with every axis missing.
 
 ### The market layer (`lib/market.ts`, `components/MarketLine.tsx`)
 

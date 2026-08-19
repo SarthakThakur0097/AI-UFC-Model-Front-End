@@ -10,7 +10,8 @@
 // component): every bucket carries a `low_sample` flag computed server-side
 // (n < 25). Low-sample buckets render in a muted/dashed style so they can't
 // be mistaken for buckets with real statistical weight — same discipline as
-// FightRadar.tsx's "Limited adjusted data" state for sparse adjperf data.
+// FightRadar.tsx dropping an axis the backend declined to score rather than
+// plotting it at zero.
 //
 // This page makes a CALIBRATION claim only. It does not claim or imply any
 // betting edge against the market — no edge against the closing line has

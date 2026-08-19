@@ -6,18 +6,35 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000";
 
 type Mode = "discipline" | "raw" | "adjusted" | "defense";
 
-// ── axis sets per mode (names MUST match backend stat keys) ──
-const AXES_DISCIPLINE = ["Striking", "Power", "Wrestling", "Control", "BJJ"];
+function wrapLabel(s: string): string {
+  if (s.includes("\n")) return s;
+  const parts = s.split(" ");
+  if (parts.length === 2) return parts.join("\n");
+  return s;
+}
 
-const AXES_DEFENSE = [
+// ── axis sets per mode (keys MUST match backend stat keys) ──
+type AxisSpec = { key: string; label: string };
+
+const disciplineAxis = (k: string): AxisSpec => ({ key: k, label: wrapLabel(k) });
+
+const AXES_DISCIPLINE: AxisSpec[] = [
+  "Striking",
+  "Power",
+  "Wrestling",
+  "Control",
+  "BJJ",
+].map(disciplineAxis);
+
+const AXES_DEFENSE: AxisSpec[] = [
   "Striking Defense",
   "Takedown Defense",
   "Durability",
   "Ground Defense",
   "Distance Defense",
-];
+].map(disciplineAxis);
 
-const AXES_RAW: { key: string; label: string }[] = [
+const AXES_RAW: AxisSpec[] = [
   { key: "slpm", label: "Striking\nVolume" },
   { key: "str_acc", label: "Striking\nAccuracy" },
   { key: "str_def", label: "Striking\nDefense" },
@@ -27,7 +44,7 @@ const AXES_RAW: { key: string; label: string }[] = [
   { key: "sub_avg", label: "Sub / 15" },
 ];
 
-const AXES_ADJ: { key: string; label: string }[] = [
+const AXES_ADJ: AxisSpec[] = [
   { key: "slpm", label: "Striking\nVolume" },
   { key: "str_acc", label: "Striking\nAccuracy" },
   { key: "td_avg", label: "Takedowns" },
@@ -39,17 +56,17 @@ const AXES_ADJ: { key: string; label: string }[] = [
   { key: "distance_allowed", label: "Distance\nDefense" },
 ];
 
-function wrapLabel(s: string): string {
-  if (s.includes("\n")) return s;
-  const parts = s.split(" ");
-  if (parts.length === 2) return parts.join("\n");
-  return s;
-}
-
 // ── profile shape returned by /fighter/<name>/profile ──
+// Two wire shapes: `discipline`/`defense` are flat name -> number|null dicts,
+// `adjusted`/`raw` are name -> {z, pct, label} with pct nullable.
+type AdjStat = {
+  z?: number | null;
+  pct?: number | null;
+  label?: string | null;
+};
 type RadarModeData = {
   name: string;
-  stats: Record<string, any>;
+  stats: Record<string, number | AdjStat | null> | null;
   limited?: boolean;
 };
 type Profile = {
@@ -93,23 +110,48 @@ function polygon(vals: number[], R: number, cx: number, cy: number, n: number) {
   return p + "Z";
 }
 
-// pull the values for a given mode out of a fighter's profile
-function valsForMode(mode: Mode, profile: Profile | null): number[] {
-  if (!profile) return [];
-  const modeData = profile.radar[mode];
-  if (!modeData || !modeData.stats) return [];
-  const stats = modeData.stats;
-  if (mode === "discipline") return AXES_DISCIPLINE.map((ax) => stats[ax] ?? 0);
-  if (mode === "defense") return AXES_DEFENSE.map((ax) => stats[ax] ?? 0);
-  const axes = mode === "adjusted" ? AXES_ADJ : AXES_RAW;
-  return axes.map((ax) => stats[ax.key]?.pct ?? 0);
+function axesFor(mode: Mode): AxisSpec[] {
+  if (mode === "discipline") return AXES_DISCIPLINE;
+  if (mode === "defense") return AXES_DEFENSE;
+  return mode === "adjusted" ? AXES_ADJ : AXES_RAW;
 }
 
-function labelsFor(mode: Mode): string[] {
-  if (mode === "discipline") return AXES_DISCIPLINE.map(wrapLabel);
-  if (mode === "defense") return AXES_DEFENSE.map(wrapLabel);
-  return (mode === "adjusted" ? AXES_ADJ : AXES_RAW).map((a) => a.label);
+/**
+ * Read one axis off a fighter's profile, preserving "no value".
+ *
+ * A null here is NOT a zero. The backend suppresses a metric it cannot compute
+ * (adjusted Control, for instance, is gated behind takedown rate, so a striker
+ * who never shoots has none) precisely so the number is not published. Coercing
+ * it to 0 puts that fighter at worst-in-division on a skill that was never
+ * measured — the exact misreading the suppression exists to prevent. A real 0
+ * (Njokuani's discipline Wrestling, raw TD Accuracy) is a number and survives.
+ */
+function readAxis(
+  mode: Mode,
+  profile: Profile | null,
+  key: string,
+): number | null {
+  const stats = profile?.radar[mode]?.stats;
+  if (!stats) return null;
+  const raw = stats[key];
+  if (raw === null || raw === undefined) return null;
+  const v = typeof raw === "number" ? raw : raw.pct;
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
+
+/** Axis label for prose — the chart's labels carry a hard wrap. */
+const flatLabel = (s: string) => s.replace(/\n/g, " ");
+
+const MODE_NOUN: Record<Mode, string> = {
+  discipline: "discipline",
+  adjusted: "opponent-adjusted",
+  defense: "defense",
+  raw: "raw",
+};
+
+// A radar needs at least three spokes to enclose an area; one or two would draw
+// a point or a line, which reads as "no ability" rather than "no data".
+const MIN_AXES = 3;
 
 export default function FightRadar({
   f1,
@@ -284,30 +326,84 @@ export default function FightRadar({
       </div>
     );
 
-  // adjusted mode may be limited (sparse data) for one side
-  const aLimited = mode === "adjusted" && a.radar.adjusted?.limited;
-  const bLimited = mode === "adjusted" && b.radar.adjusted?.limited;
-  if (aLimited || bLimited)
+  // Resolve every axis for both corners, keeping nulls as nulls.
+  //
+  // An axis is comparable only when BOTH fighters have a published value: the
+  // user reads the gap between the two polygons as a skill difference, so a
+  // spoke where one side is simply unmeasured cannot be drawn at all. Drop it
+  // and shrink the radar — a 6-axis shape against a 6-axis shape is honest, a
+  // 9-axis shape against a 6-axis one is not.
+  const cells = axesFor(mode).map((ax) => ({
+    ax,
+    va: readAxis(mode, a, ax.key),
+    vb: readAxis(mode, b, ax.key),
+  }));
+  type Cell = (typeof cells)[number];
+  const shown = cells.filter(
+    (c): c is Cell & { va: number; vb: number } =>
+      c.va !== null && c.vb !== null,
+  );
+  const dropped = cells.filter((c) => c.va === null || c.vb === null);
+
+  // Per fighter, which axes the backend declined to publish. `limited` is NOT
+  // consulted: it is all-or-nothing (true only when all nine adjusted axes are
+  // null), so a quarter of fighters carry limited:false while part of the chart
+  // is missing. The individual nulls are the only source of truth — a
+  // limited:true fighter falls out of this same check with every axis missing.
+  const missing = [
+    { name: a.name, axes: cells.filter((c) => c.va === null) },
+    { name: b.name, axes: cells.filter((c) => c.vb === null) },
+  ].filter((m) => m.axes.length > 0);
+
+  if (shown.length < MIN_AXES)
     return (
       <div>
         {toggle}
-        <p
-          style={{
-            textAlign: "center",
-            fontSize: 12,
-            color: "var(--text-secondary)",
-            padding: "20px 0",
-          }}
-        >
-          Limited adjusted data for this matchup
-        </p>
+        <div style={{ padding: "18px 12px", textAlign: "center" }}>
+          <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {shown.length === 0
+              ? `No comparable ${MODE_NOUN[mode]} axes for this matchup.`
+              : `Only ${shown.length} comparable ${MODE_NOUN[mode]} ${
+                  shown.length === 1 ? "axis" : "axes"
+                } — too few to draw a radar.`}
+          </p>
+          {missing.map((m) => (
+            <p
+              key={m.name}
+              style={{
+                fontSize: 11,
+                color: "var(--text-muted)",
+                marginTop: 6,
+              }}
+            >
+              {m.name} —{" "}
+              {m.axes.length === cells.length
+                ? `no ${MODE_NOUN[mode]} score on any axis`
+                : `no ${MODE_NOUN[mode]} score on ${m.axes
+                    .map((c) => flatLabel(c.ax.label))
+                    .join(", ")}`}
+              .
+            </p>
+          ))}
+          <p
+            style={{
+              fontSize: 10,
+              color: "var(--text-muted)",
+              marginTop: 10,
+              fontStyle: "italic",
+            }}
+          >
+            These metrics are unpublished, not zero — plotting them would put
+            the fighter at the bottom of a division on a skill never measured.
+          </p>
+        </div>
       </div>
     );
 
-  const labels = labelsFor(mode);
+  const labels = shown.map((c) => c.ax.label);
   const n = labels.length;
-  const valsA = valsForMode(mode, a);
-  const valsB = valsForMode(mode, b);
+  const valsA = shown.map((c) => c.va);
+  const valsB = shown.map((c) => c.vb);
 
   const size = 300;
   const cx = size / 2;
@@ -455,6 +551,22 @@ export default function FightRadar({
         {/* labels stay OUTSIDE the rotating group so they remain upright */}
         {labelEls}
       </svg>
+      {/* Dropped axes are named, never silently omitted — a shrunken radar with
+          no explanation reads as the fighter's whole profile. */}
+      {dropped.length > 0 && (
+        <p
+          style={{
+            textAlign: "center",
+            fontSize: 10,
+            color: "var(--text-muted)",
+            marginTop: 6,
+            padding: "0 8px",
+          }}
+        >
+          Not shown — no comparable data:{" "}
+          {dropped.map((c) => flatLabel(c.ax.label)).join(", ")}.
+        </p>
+      )}
       {mode === "discipline" && (
         <p
           style={{
