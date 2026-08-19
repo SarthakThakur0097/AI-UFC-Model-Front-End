@@ -89,6 +89,14 @@ type PastCardProps = {
   event: string;
   date: string;
   fights: PastFight[];
+  /**
+   * Whether fights[0] is genuinely the main event. `/results` carries no
+   * `position`, so this is derived from the event title (lib/mainEvent.ts) and
+   * is false for cards whose title names no matchup. When false, no fight gets
+   * the hero treatment — badging an arbitrary bout MAIN EVENT is worse than
+   * badging none.
+   */
+  mainEventKnown?: boolean;
 };
 
 const mono = { fontFamily: "var(--font-mono)" } as const;
@@ -172,7 +180,12 @@ function Avatar({ name, won }: { name: string; won: boolean }) {
   );
 }
 
-export default function PastCard({ event, date, fights }: PastCardProps) {
+export default function PastCard({
+  event,
+  date,
+  fights,
+  mainEventKnown = false,
+}: PastCardProps) {
   const [expanded, setExpanded] = useState<number | null>(null);
   const [showPropsHelp, setShowPropsHelp] = useState(false);
   const correct = fights.filter((f) => f.correct).length;
@@ -248,7 +261,9 @@ export default function PastCard({ event, date, fights }: PastCardProps) {
       {/* Fights: hero box for the main event, quiet one-line boxes after */}
       <div className="px-5 pb-5 flex flex-col gap-2.5">
         {fights.map((fight, i) => {
-          const hero = i === 0;
+          // Only the fight we can actually identify as the main event gets the
+          // hero box. See mainEventKnown.
+          const hero = i === 0 && mainEventKnown;
           const isOpen = expanded === i;
           const f1Won = fight.actual_winner === fight.f1;
           const verdictColor = fight.correct

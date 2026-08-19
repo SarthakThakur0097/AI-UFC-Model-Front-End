@@ -1,4 +1,5 @@
 import type { MarketProps } from './market'
+import { orderPastCard } from './mainEvent'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:5000'
 
@@ -52,12 +53,29 @@ export async function getAccuracy(): Promise<AccuracyResponse | null> {
   }
 }
 
+/**
+ * Past cards, with the main event hoisted to the front of each fight list.
+ *
+ * `/results` carries no `position` field and returns fights in arbitrary order,
+ * so the raw payload cannot be rendered card-style as-is. See lib/mainEvent.ts
+ * for how the main event is recovered and what stays unrecoverable. Every card
+ * gains a `mainEventKnown` flag; consumers must not badge a main event when it
+ * is false.
+ */
 export async function getPastCards(limit = 3) {
   try {
     const res = await fetch(`${API_URL}/results?limit=${limit}`, {
       cache: 'no-store'
     })
-    return res.json()
+    const cards = await res.json()
+    if (!Array.isArray(cards)) return []
+    return cards.map((card) => {
+      const { fights, mainEventKnown } = orderPastCard(
+        card?.event ?? '',
+        Array.isArray(card?.fights) ? card.fights : []
+      )
+      return { ...card, fights, mainEventKnown }
+    })
   } catch {
     return []
   }

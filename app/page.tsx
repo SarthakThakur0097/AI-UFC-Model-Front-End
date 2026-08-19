@@ -176,6 +176,7 @@ export default async function Home({
                 key={i}
                 event={card.event}
                 date={card.date}
+                mainEventKnown={card.mainEventKnown}
                 fights={card.fights.map((f: any) => ({
                   f1: f.f1,
                   f2: f.f2,
